@@ -943,7 +943,7 @@
             if (!skipAnimation) window.openModal('turmaDetailModal'); 
         }
 
-        // --- Renderização Alunos (ATUALIZADO) ---
+                // --- Renderização Alunos (ATUALIZADO COM DEBUG DE TELA) ---
         window.renderAlunos = () => {
              console.log("renderAlunos chamado."); 
              const list = document.getElementById('alunosList'), filters = document.getElementById('turmaFilters'); 
@@ -1001,9 +1001,15 @@
                  }).join('');
              } catch (error) { 
                  console.error("Erro renderAlunos map:", error); 
-                 list.innerHTML = `<div class='empty-state'><h3 style='color:red;'>Erro!</h3><p>Erro ao exibir alunos.</p></div>`; 
+                 // *** MUDANÇA AQUI ***
+                 list.innerHTML = `<div class='empty-state' style='text-align: left; padding: 15px;'>
+                                    <h3 style='color:red;'>Erro ao Renderizar Alunos!</h3>
+                                    <p style='color:var(--color-text);'>Por favor, reporte este erro:</p>
+                                    <pre style='background: var(--color-border); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; font-size: 12px; color: red; margin-top: 10px;'>${escapeHTML(error.message)}\n\n${escapeHTML(error.stack)}</pre>
+                                 </div>`; 
              }
         }
+
 
         // --- Renderização Turmas (ATUALIZADO) ---
         window.renderTurmas = () => { 
