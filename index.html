@@ -329,7 +329,12 @@
         .modal-nav { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
         .modal-nav .btn { flex: 1; padding: 10px; font-size: 14px; }
         /* Media Queries */
-        @media (max-width: 480px) { .header-actions { gap: 5px; } .header-btn { width: 35px; height: 35px; } .header-btn .material-icons-outlined { font-size: 18px; } .search-box { display: none; } /* Esconde search no header em telas micro */ }
+        @media (max-width: 480px) { 
+            .header-actions { gap: 5px; } 
+            .header-btn { width: 35px; height: 35px; } 
+            .header-btn .material-icons-outlined { font-size: 18px; } 
+            /* .search-box { display: none; } /* Remova ou comente esta linha se quiser a busca em telas pequenas */
+        }
         @media (max-width: 360px) { .header h1 { font-size: 18px; } }
         /* Tela de Login */
         #loginScreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
@@ -381,9 +386,11 @@
         <div id="contentContainer">
             <div class="content" id="alunosContent">
                 <div class="filter-chips" id="turmaFilters"></div>
+                <p style="color: yellow;">TESTE ALUNOS LIST VISÍVEL?</p> 
                 <div id="alunosList"><div class="loading">A carregar alunos...</div></div>
             </div>
             <div class="content" id="turmasContent" style="display:none;">
+                <p style="color: yellow;">TESTE TURMAS LIST VISÍVEL?</p>
                 <div id="turmasList"><div class="loading">A carregar turmas...</div></div>
             </div>
         </div>
@@ -434,11 +441,11 @@
         // *** 1. PREENCHA AQUI: Cole a sua configuração do Firebase ***
         // =================================================================
         const firebaseConfig = {
-             apiKey: "AIzaSyBT1gu4-FghvGiJUqqyFjTG5ADAt3_VUDU",
-             authDomain: "nata-b913d.firebaseapp.com",
-             projectId: "nata-b913d",
-             storageBucket: "nata-b913d.firebasestorage.app",
-             messagingSenderId: "349396363879",
+             apiKey: "AIzaSyBT1gu4-FghvGiJUqqyFjTG5ADAt3_VUDU", // Exemplo, substitua pela sua
+             authDomain: "nata-b913d.firebaseapp.com", // Exemplo, substitua pelo seu
+             projectId: "nata-b913d", // Exemplo, substitua pelo seu
+             storageBucket: "nata-b913d.firebasestorage.app", // Exemplo, substitua pelo seu
+             messagingSenderId: "349396363879", // Exemplo, substitua pelo seu
              appId: "1:349396363879:web:1adc27c5f1a2af6c02c2c2" // Exemplo, substitua pelo seu
         };
         // =================================================================
@@ -446,7 +453,7 @@
         // Init Firebase & Serviços
         let app, db, auth, provider;
         try {
-             // *** CORREÇÃO APLICADA AQUI ***
+            // *** CORREÇÃO APLICADA AQUI ***
             if (firebaseConfig.apiKey === "SUA_API_KEY_AQUI") { 
                  throw new Error("Configuração do Firebase não preenchida.");
             }
@@ -841,8 +848,11 @@
             const mc = document.querySelector('#turmaDetailModal .modal-content'); if(mc) mc.scrollTop = 0; if (!skipAnimation) window.openModal('turmaDetailModal'); 
         }
 
-        // --- Renderização Alunos (COM DEBUG DE CONTAGEM) ---
+        // --- Renderização Alunos (COM DEBUG DE CONTAGEM E ALERT) ---
         window.renderAlunos = () => {
+             // *** ADICIONADO ALERT ***
+             alert("Função renderAlunos FOI CHAMADA."); 
+
              console.log("renderAlunos chamado."); 
              const list = document.getElementById('alunosList'), filters = document.getElementById('turmaFilters'); 
              if(!list || !filters || !window.appState.isLoggedIn) { return; }
@@ -888,8 +898,11 @@
              }
         }
 
-        // --- Renderização Turmas (COM DEBUG DE CONTAGEM) ---
+        // --- Renderização Turmas (COM DEBUG DE CONTAGEM E ALERT) ---
         window.renderTurmas = () => { 
+            // *** ADICIONADO ALERT ***
+            alert("Função renderTurmas FOI CHAMADA.");
+
             console.log("renderTurmas chamado.");
             const list = document.getElementById('turmasList'); 
             if(!list || !window.appState.isLoggedIn) { return; }
@@ -918,8 +931,7 @@
                 const itemsHtml = window.appState.filteredTurmas.map(t => { 
                     const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); 
                     const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; 
-                    // *** CORREÇÃO: Botão de editar turma estava chamando openEditAlunoModal ***
-                    const editButtonHtml = showAdminButtonsRender ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` : '';
+                    const editButtonHtml = showAdminButtonsRender ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` : ''; // Corrigido aqui
                     const avatar = `<div class="avatar-placeholder" style="background:var(--color-border);color:var(--color-active-link); border-radius:var(--avatar-border-radius);"><span class="material-icons-outlined">school</span></div>`;
                     return `<div class="card" style="cursor:pointer;" onclick="window.showTurmaDetail('${t.id}')">${avatar}<div class="card-info"><div class="card-title">${escapeHTML(t.nome)}</div><div class="card-subtitle">${escapeHTML(t.serie||'N/D')} • ${aM} aluno(s)</div></div>${editButtonHtml}<span class="material-icons-outlined card-chevron">chevron_right</span></div>`; 
                 }).join('');
@@ -930,8 +942,8 @@
             }
         }
 
-        // --- Listeners do Firestore ---
-        function iniciarListenersFirestore() { /* ... */ 
+        // --- Listeners do Firestore (COM ALERTS) ---
+        function iniciarListenersFirestore() {
             console.log("Iniciando listeners do Firestore...");
             try {
                 const qTurmas = query(collection(db, 'turmas'), orderBy('nome'));
@@ -940,6 +952,10 @@
                     window.appState.turmasData = snapshot.docs.map(d => ({ id: d.id, ...d.data() })); 
                     const currentTurmaValue = document.getElementById('alunoTurma')?.value;
                     populateTurmaSelect('alunoTurma', currentTurmaValue); 
+                    
+                    // *** ADICIONADO ALERT ***
+                    alert(`Turmas recebidas: ${snapshot.docs.length}. Chamando render...`); 
+
                     if (window.appState.currentTab === 'turmas') window.renderTurmas(); 
                     else if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
                 }, (e) => { console.error("Erro no listener de TURMAS:", e); window.showToast('Erro ao carregar Turmas.', 'error'); });
@@ -950,8 +966,12 @@
                 unsubscribeAlunos = onSnapshot(qAlunos, (snapshot) => { 
                     console.log("Recebidos dados de ALUNOS:", snapshot.docs.length);
                     window.appState.alunosData = snapshot.docs.map(d => ({ id: d.id, ...d.data() })); 
+                    
+                    // *** ADICIONADO ALERT ***
+                    alert(`Alunos recebidos: ${snapshot.docs.length}. Chamando render...`); 
+
                     if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
-                    window.renderTurmas(); 
+                    window.renderTurmas(); // Sempre atualiza stats das turmas
                 }, (e) => { console.error("Erro no listener de ALUNOS:", e); window.showToast('Erro ao carregar Alunos.', 'error'); });
             } catch (e) { console.error("Falha ao criar listener de ALUNOS:", e); }
         }
