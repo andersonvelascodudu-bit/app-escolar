@@ -864,26 +864,34 @@
              // Verifica se algum elemento essencial não foi encontrado ou se não está logado
              if(!list || !filters || !window.appState.isLoggedIn) { 
                  alert("renderAlunos: Saindo cedo devido a !list, !filters ou !isLoggedIn."); // Alert se sair aqui
+                 // Tenta exibir erro mesmo se sair cedo
+                 if (list) list.innerHTML = '<p style="color: red;">Erro: renderAlunos saiu cedo!</p>';
                  return; 
              }
              
              // Se chegou aqui, os elementos foram encontrados e está logado. Tenta renderizar...
              alert("renderAlunos: Elementos OK, continuando para renderização...");
              
-             // Código restante da função renderAlunos (filtros, contagem, try/catch para desenhar)
-             // ... (o código restante é idêntico ao da versão anterior com a caixa cinza) ...
-             let fHtml = `<div class="chip ${window.appState.currentFilter === 'Todos' ? 'active' : ''}" onclick="window.setFilter('Todos')">Todos</div>`;
-             (window.appState.turmasData || []).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).forEach(t => { fHtml += `<div class="chip ${window.appState.currentFilter === t.nome ? 'active' : ''}" onclick="window.setFilter('${escapeHTML(t.nome)}')">${escapeHTML(t.nome)}</div>`; });
-             filters.innerHTML = fHtml;
-             const q = window.appState.searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-             window.appState.filteredAlunos = (window.appState.alunosData || []).filter(a => { const fm = (window.appState.currentFilter === 'Todos' || a.turma === window.appState.currentFilter); if (!fm) return false; if (q.length === 0) return true; const sf = [a.nome, a.matricula, a.nascimento, a.cpf, a.responsavel1Nome, a.responsavel2Nome].map(val => String(val || '').toLowerCase()).join(' ').normalize("NFD").replace(/[\u0300-\u036f]/g,""); return sf.includes(q); });
-             const count = window.appState.filteredAlunos.length;
+             // Calcula contagens
              const totalCount = (window.appState.alunosData || []).length;
-             list.innerHTML = `<div style="padding: 10px; background: #eee; color: #333; margin-bottom: 10px; border-radius: 8px;">Debug Alunos: Total=${totalCount}, Filtrados=${count}, Filtro Turma='${window.appState.currentFilter}', Busca='${window.appState.searchQuery}'</div>`;
-             if (count === 0) { list.innerHTML += `<div class="empty-state"><span class="material-icons-outlined">people_outline</span><h3>Nenhum Aluno Encontrado</h3><p>Verifique os filtros ou adicione novos alunos.</p></div>`; return; }
-             const showAdminFeaturesRender = window.appState.isAdmin && window.appState.viewAsAdmin; 
-             try { const itemsHtml = window.appState.filteredAlunos.map(a => { let avatar = ''; if (a.status === 'Transferido') { avatar = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; } else if (a.fotoURL) { avatar = `<img src="${escapeHTML(convertGoogleDriveLink(a.fotoURL))}" class="avatar" alt="Foto" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="avatar avatar-placeholder-semfoto" style="display:none;">S/ Foto</div>`; } else { avatar = `<div class="avatar avatar-placeholder-semfoto">S/ Foto</div>`; } const isSel = window.appState.selectedAlunoIds.includes(a.id); const cardCls = `card ${showAdminFeaturesRender && window.appState.isSelectionModeActive ? 'selectable' : ''} ${isSel ? 'selected' : ''}`; const clickH = (showAdminFeaturesRender && window.appState.isSelectionModeActive) ? `window.toggleAlunoSelection('${a.id}')` : `window.showAlunoDetail('${a.id}')`; const editButtonHtml = (showAdminFeaturesRender && !window.appState.isSelectionModeActive) ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` : ''; return `<div class="${cardCls}" data-aluno-id="${a.id}" onclick="${clickH}">${avatar}<div class="card-info"><div class="card-title">${escapeHTML(a.nome)}</div><div class="card-subtitle">${escapeHTML(a.turma||'S/T')} / Mat: ${escapeHTML(a.matricula || '')}</div></div>${editButtonHtml}<span class="material-icons-outlined card-chevron">chevron_right</span></div>`; }).join(''); list.innerHTML += itemsHtml; } 
-             catch (error) { console.error("Erro renderAlunos map:", error); list.innerHTML = `<div class='empty-state' style='text-align: left; padding: 15px;'><h3 style='color:red;'>Erro ao Renderizar Alunos!</h3><p style='color:var(--color-text);'>Por favor, reporte este erro:</p><pre style='background: var(--color-border); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; font-size: 12px; color: red; margin-top: 10px;'>${escapeHTML(error.message)}\n\n${escapeHTML(error.stack)}</pre></div>`; }
+             const filteredCount = (window.appState.filteredAlunos || []).length; // Usa a lista já filtrada se existir
+
+             // Exibe APENAS a caixa de debug
+             try {
+                list.innerHTML = `<div style="padding: 15px; background: lightgoldenrodyellow; color: black; margin-bottom: 10px; border: 1px solid goldenrod; border-radius: 8px; font-size: 14px;">
+                                    <strong>Debug Alunos (Simplificado):</strong><br>
+                                    Total Dados Recebidos=${totalCount}<br> 
+                                    (Contagem filtrada anterior=${filteredCount})<br>
+                                    Filtro Turma='${window.appState.currentFilter}'<br>
+                                    Busca='${window.appState.searchQuery}'<br>
+                                    Timestamp: ${new Date().toLocaleTimeString()}
+                                  </div>`;
+                alert("renderAlunos: innerHTML da caixa de debug foi definido. Verifique a tela.");
+             } catch (e) {
+                alert(`ERRO CRÍTICO ao tentar definir innerHTML em renderAlunos: ${e.message}`);
+                // Tenta exibir o erro na tela de qualquer maneira
+                if(list) list.innerHTML = `<p style="color: red;">ERRO JS: ${e.message}</p>`;
+             }
         }
 
         // --- Renderização Turmas (COM ALERTS DE VERIFICAÇÃO DE ELEMENTOS) ---
@@ -900,24 +908,31 @@
             // Verifica se algum elemento essencial não foi encontrado ou se não está logado
             if(!list || !window.appState.isLoggedIn) { 
                  alert("renderTurmas: Saindo cedo devido a !list ou !isLoggedIn."); // Alert se sair aqui
+                 if (list) list.innerHTML = '<p style="color: red;">Erro: renderTurmas saiu cedo!</p>';
                  return; 
              }
 
             // Se chegou aqui, os elementos foram encontrados e está logado. Tenta renderizar...
             alert("renderTurmas: Elementos OK, continuando para renderização...");
 
-            // Código restante da função renderTurmas (filtros, contagem, try/catch para desenhar)
-            // ... (o código restante é idêntico ao da versão anterior com a caixa cinza) ...
-            const q = window.appState.searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,""); 
-            window.appState.filteredTurmas = (window.appState.turmasData || []).filter(t => { if(q.length === 0) return true; const sf = [t.nome, t.serie].filter(Boolean).join(' ').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); return sf.includes(q); }); 
-            const count = window.appState.filteredTurmas.length;
+            // Calcula contagens
             const totalCount = (window.appState.turmasData || []).length;
-            list.innerHTML = `<div style="padding: 10px; background: #eee; color: #333; margin-bottom: 10px; border-radius: 8px;">Debug Turmas: Total=${totalCount}, Filtradas=${count}, Busca='${window.appState.searchQuery}'</div>`;
-            if (count === 0) { list.innerHTML += `<div class="empty-state"><span class="material-icons-outlined">class</span><h3>Nenhuma Turma Encontrada</h3><p>Adicione novas turmas no modo Admin.</p></div>`; return; } 
-            const alunosGlobais = window.appState.alunosData || []; 
-            const showAdminButtonsRender = window.appState.isAdmin && window.appState.viewAsAdmin; 
-            try { const itemsHtml = window.appState.filteredTurmas.map(t => { const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; const editButtonHtml = showAdminButtonsRender ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` : ''; const avatar = `<div class="avatar-placeholder" style="background:var(--color-border);color:var(--color-active-link); border-radius:var(--avatar-border-radius);"><span class="material-icons-outlined">school</span></div>`; return `<div class="card" style="cursor:pointer;" onclick="window.showTurmaDetail('${t.id}')">${avatar}<div class="card-info"><div class="card-title">${escapeHTML(t.nome)}</div><div class="card-subtitle">${escapeHTML(t.serie||'N/D')} • ${aM} aluno(s)</div></div>${editButtonHtml}<span class="material-icons-outlined card-chevron">chevron_right</span></div>`; }).join(''); list.innerHTML += itemsHtml; } 
-            catch (error) { console.error("Erro renderTurmas map:", error); list.innerHTML = `<div class='empty-state' style='text-align: left; padding: 15px;'><h3 style='color:red;'>Erro ao Renderizar Turmas!</h3><p style='color:var(--color-text);'>Por favor, reporte este erro:</p><pre style='background: var(--color-border); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; font-size: 12px; color: red; margin-top: 10px;'>${escapeHTML(error.message)}\n\n${escapeHTML(error.stack)}</pre></div>`; }
+             const filteredCount = (window.appState.filteredTurmas || []).length; // Usa a lista já filtrada se existir
+
+            // Exibe APENAS a caixa de debug
+            try {
+                 list.innerHTML = `<div style="padding: 15px; background: lightblue; color: black; margin-bottom: 10px; border: 1px solid blue; border-radius: 8px; font-size: 14px;">
+                                    <strong>Debug Turmas (Simplificado):</strong><br>
+                                    Total Dados Recebidos=${totalCount}<br>
+                                    (Contagem filtrada anterior=${filteredCount})<br>
+                                    Busca='${window.appState.searchQuery}'<br>
+                                    Timestamp: ${new Date().toLocaleTimeString()}
+                                   </div>`;
+                alert("renderTurmas: innerHTML da caixa de debug foi definido. Verifique a tela.");
+            } catch (e) {
+                alert(`ERRO CRÍTICO ao tentar definir innerHTML em renderTurmas: ${e.message}`);
+                if(list) list.innerHTML = `<p style="color: red;">ERRO JS: ${e.message}</p>`;
+            }
         }
 
         // --- Listeners do Firestore (COM ALERTS) ---
