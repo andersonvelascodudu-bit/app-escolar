@@ -190,12 +190,12 @@
 
         // *** IMPORTANTE: Cole aqui a sua configuração do Firebase ***
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_AUTH_DOMAIN.firebaseapp.com",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_STORAGE_BUCKET.appspot.com",
-            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-            appId: "SEU_APP_ID"
+             apiKey: "AIzaSyBT1gu4-FghvGiJUqqyFjTG5ADAt3_VUDU",
+             authDomain: "nata-b913d.firebaseapp.com",
+             projectId: "nata-b913d",
+             storageBucket: "nata-b913d.firebasestorage.app",
+             messagingSenderId: "349396363879",
+             appId: "1:349396363879:web:1adc27c5f1a2af6c02c2c2"
         };
         
         // Init Firebase & Serviços
@@ -219,9 +219,12 @@
             editingAlunoId: null, editingTurmaId: null, turmasData: [], alunosData: [], 
             searchQuery: '', 
             // *** IMPORTANTE: Lista de emails que podem ACESSAR a app ***
-            authorizedUserEmails: ['seu_email_aqui@exemplo.com', 'outro@exemplo.com'], 
+            authorizedUserEmails: ['andersonvelascodudu@gmail.com', 
+                                   'anderson.43864058@prof.educa.rj.gov.br',
+                                   'andersonvelascodeoliveira@gmail.com'], 
             // *** IMPORTANTE: Lista de emails que têm permissão de ADMIN ***
-            adminEmails: ['seu_email_admin@exemplo.com'], 
+            adminEmails: ['andersonvelascodudu@gmail.com', 
+                          'anderson.43864058@prof.educa.rj.gov.br'], 
             userEmail: null, isLoggedIn: false, 
             filteredAlunos: [], currentAlunoIndex: -1, filteredTurmas: [], currentTurmaIndex: -1,
             isSelectionModeActive: false, selectedAlunoIds: [] 
@@ -282,20 +285,68 @@
         onAuthStateChanged(auth, (user) => {
              console.log("onAuthStateChanged:", user ? user.email : 'Nenhum utilizador'); 
              try { 
-                if (user && user.email) { 
+                if (user && user.email) {
+                    // Usuário está LOGADO
                     if (window.appState.authorizedUserEmails.includes(user.email)) {
+                        // --- 1. Usuário LOGADO e AUTORIZADO ---
                         window.appState.isLoggedIn = true; window.appState.userEmail = user.email;
                         window.appState.isAdmin = window.appState.adminEmails.includes(user.email);
                         window.appState.viewAsAdmin = window.appState.isAdmin; 
                         console.log("Utilizador autorizado. Admin:", window.appState.isAdmin);
+                        
                         if (loginScreen) loginScreen.style.display = 'none'; 
                         if (appContainer) appContainer.style.display = 'block'; 
-                        if (!listenersIniciados) { iniciarListenersFirestore(); } 
-                        else { updateAdminUI(); }
+                        
+                        if (!listenersIniciados) { 
+                            iniciarListenersFirestore(); 
+                            listenersIniciados = true;
+                        } else { 
+                            updateAdminUI(); 
+                        }
                         adjustLayout(); 
-                    } else { /* ... (Não Autorizado) ... */ }
-                } else { /* ... (Deslogado) ... */ }
-             } catch (e) { console.error("ERRO CRÍTICO em onAuthStateChanged:", e); /* ... */ }
+                    } else { 
+                        // --- 2. Usuário LOGADO mas NÃO AUTORIZADO ---
+                        console.warn("Utilizador não autorizado:", user.email);
+                        window.appState.isLoggedIn = false;
+                        
+                        if (loginMessage) loginMessage.textContent = 'Acesso não autorizado.';
+                        if (authError) authError.textContent = `O email ${user.email} não tem permissão para usar este sistema.`;
+                        if (loginButton) loginButton.style.display = 'none'; // Esconde o botão de login
+                        if (logoutBtn) logoutBtn.style.display = 'inline-block'; // Mostra botão de logout
+                        
+                        if (loginScreen) loginScreen.style.display = 'flex';
+                        if (appContainer) appContainer.style.display = 'none';
+                        // Opcional: deslogar automaticamente o usuário não autorizado
+                        // signOut(auth);
+                    }
+                } else { 
+                    // --- 3. Usuário DESLOGADO ---
+                    console.log("Utilizador deslogado. Exibindo tela de login.");
+                    window.appState.isLoggedIn = false;
+                    window.appState.userEmail = null;
+                    window.appState.isAdmin = false;
+                    
+                    if (loginMessage) loginMessage.textContent = 'Por favor, faça login para continuar.';
+                    if (authError) authError.textContent = ''; // Limpa erros antigos
+                    
+                    // ESTA É A LINHA QUE CORRIGE O SEU PROBLEMA:
+                    if (loginButton) loginButton.style.display = 'block'; 
+                    
+                    if (loginScreen) loginScreen.style.display = 'flex';
+                    if (appContainer) appContainer.style.display = 'none';
+                    if (logoutBtn) logoutBtn.style.display = 'none';
+                    
+                    // Garante que os listeners sejam parados se existirem
+                    if (unsubscribeAlunos) { unsubscribeAlunos(); unsubscribeAlunos = null; }
+                    if (unsubscribeTurmas) { unsubscribeTurmas(); unsubscribeTurmas = null; }
+                    listenersIniciados = false;
+                }
+             } catch (e) { 
+                 console.error("ERRO CRÍTICO em onAuthStateChanged:", e); 
+                 if (loginMessage) loginMessage.textContent = 'Erro crítico no login.';
+                 if (authError) authError.textContent = e.message;
+                 if (loginButton) loginButton.style.display = 'block'; // Mostra o botão mesmo em caso de erro
+             }
         });
 
 
@@ -451,4 +502,5 @@
 
     </script>
 </body>
+
 </html>
