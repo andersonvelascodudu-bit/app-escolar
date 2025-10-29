@@ -32,12 +32,13 @@
         .header h1, .header-actions { position: relative; z-index: 2; }
         .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
         .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        .search-box { flex: 1 1 150px; padding: 10px 15px; border: none; border-radius: 25px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); min-width: 100px; opacity: 0.9; }
+        /* CORREÇÃO 1: search-box ocupa 100% e força botões para a linha de baixo */
+        .search-box { flex: 1 1 150px; padding: 10px 15px; border: none; border-radius: 25px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); min-width: 100px; opacity: 0.9; flex-basis: 100%; margin-bottom: 5px; }
         .admin-btn { padding: 10px 12px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.5); border-radius: 25px; color: white; font-size: 11px; cursor: pointer; white-space: nowrap; transition: all 0.3s; flex-shrink: 0; min-width: 65px; text-align: center; line-height: 1.2; }
         .admin-btn:hover { background: rgba(255,255,255,0.3); }
         .admin-btn.active { background: #4CAF50; border-color: #4CAF50; }
-        .theme-toggle-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.5); border-radius: 50%; color: white; font-size: 14px; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0; }
-        .theme-toggle-btn:hover { background: rgba(255,255,255,0.3); }
+        /* .theme-toggle-btn removido, usando .admin-btn agora */
+
         /* Tabs - NÃO MAIS STICKY */
         .tabs { display: flex; background: var(--bg-card); border-bottom: 1px solid var(--color-border); /* Removido position sticky e top */ z-index: 99; height: var(--tabs-height); }
         .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 500; transition: all 0.3s; color: var(--color-secondary); }
@@ -123,7 +124,7 @@
         .modal-nav { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
         .modal-nav .btn { flex: 1; padding: 10px; font-size: 14px; }
         /* Bottom Nav Removido */
-        @media (max-width: 480px) { .header-actions { gap: 5px; } .admin-btn { padding: 8px 10px; font-size: 10px; min-width: 55px; } .theme-toggle-btn { width: 35px; height: 35px; } }
+        @media (max-width: 480px) { .header-actions { gap: 5px; } .admin-btn { padding: 8px 10px; font-size: 10px; min-width: 55px; } }
         @media (max-width: 360px) { .stats-grid { grid-template-columns: repeat(2, 1fr) !important; } .stat-value { font-size: 16px; } }
         #loginScreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
         #loginScreen h2 { margin-bottom: 30px; }
@@ -152,7 +153,7 @@
                 <button class="admin-btn" id="selectBtn" onclick="window.toggleSelectionMode()" style="display: none; background-color: #607D8B; border-color: #607D8B;">Selecionar</button>
                 <button class="admin-btn" id="backupBtn" onclick="window.showBackupOptions()" style="display: none; background-color: #f57c00; border-color: #f57c00;">Backup</button>
                 <button class="admin-btn" id="importBtn" onclick="window.showImportModal()" style="display: none; background-color: #388E3C; border-color: #388E3C;">Importar</button>
-                <button class="theme-toggle-btn" id="themeToggleBtn" onclick="window.toggleTheme()">Tema</button> </div>
+                <button class="admin-btn" id="themeToggleBtn" onclick="window.toggleTheme()">Tema</button> </div>
         </div>
         <div class="tabs" id="mainTabs">
             <div class="tab active" onclick="window.switchTab('alunos')">Alunos</div>
@@ -220,11 +221,9 @@
             searchQuery: '', 
             // *** IMPORTANTE: Lista de emails que podem ACESSAR a app ***
             authorizedUserEmails: ['andersonvelascodudu@gmail.com', 
-                                   'anderson.43864058@prof.educa.rj.gov.br',
                                    'andersonvelascodeoliveira@gmail.com'], 
             // *** IMPORTANTE: Lista de emails que têm permissão de ADMIN ***
-            adminEmails: ['andersonvelascodudu@gmail.com', 
-                          'anderson.43864058@prof.educa.rj.gov.br'], 
+            adminEmails: ['andersonvelascodudu@gmail.com',''], 
             userEmail: null, isLoggedIn: false, 
             filteredAlunos: [], currentAlunoIndex: -1, filteredTurmas: [], currentTurmaIndex: -1,
             isSelectionModeActive: false, selectedAlunoIds: [] 
@@ -273,48 +272,52 @@
         const appContainer = document.getElementById('appContainer'); 
         const toggleViewBtn = document.getElementById('toggleViewBtn'); 
 
-                const signIn = () => {
-            if (authError) authError.textContent = ''; // Limpa erros anteriores
-            if (loginMessage) loginMessage.textContent = 'Aguarde...'; // Avisa o usuário
+        // CORREÇÃO 2: Funções de login completas
+        const signIn = () => {
+            if (loginMessage) loginMessage.textContent = 'Aguarde...';
+            if (authError) authError.textContent = '';
+            if (loginButton) loginButton.style.display = 'none'; // Esconde o botão durante a tentativa
 
-            // Esta é a função do Firebase que abre o Popup do Google
             signInWithPopup(auth, provider)
                 .then((result) => {
-                    // Sucesso!
-                    // O 'onAuthStateChanged' que corrigimos antes vai tratar da mudança de tela.
-                    console.log("Login com Google bem-sucedido:", result.user.email);
-                    if (loginMessage) loginMessage.textContent = 'Autenticado com sucesso!';
+                    // O 'onAuthStateChanged' cuidará de exibir o app
+                    console.log("Login bem-sucedido:", result.user.email);
                 })
                 .catch((error) => {
-                    // Trata erros que podem acontecer
-                    console.error("Erro no signInWithPopup:", error);
-                    if (loginMessage) loginMessage.textContent = 'Falha no login.'; // Reverte a mensagem
-                    
-                    // Exibe mensagens de erro mais amigáveis
-                    if (error.code === 'auth/popup-closed-by-user') {
-                        if (authError) authError.textContent = 'Login cancelado. Tente novamente.';
-                        if (loginMessage) loginMessage.textContent = 'Por favor, faça login para continuar.';
-                    } else if (error.code === 'auth/account-exists-with-different-credential') {
-                        if (authError) authError.textContent = 'Já existe uma conta com este email, mas com um método de login diferente.';
-                    } else {
-                        if (authError) authError.textContent = `Erro: ${error.message}`;
-                    }
-
-                    // Garante que o botão de login reapareça se o onAuthStateChanged não o fizer
-                    if (loginButton && !window.appState.isLoggedIn) {
-                         loginButton.style.display = 'block';
-                    }
+                    console.error("Erro no login:", error);
+                    if (authError) authError.textContent = `Erro: ${error.message}`;
+                    if (loginMessage) loginMessage.textContent = 'Falha ao entrar.';
+                    if (loginButton) loginButton.style.display = 'block'; // Mostra o botão novamente se falhar
                 });
         };
-
+        
         if (loginButton) loginButton.onclick = signIn;
-        window.logout = () => { /* ... (igual anterior) ... */ };
-        window.toggleViewMode = () => { /* ... (igual anterior) ... */ };
+
+        window.logout = () => {
+            if (confirm("Tem a certeza que deseja sair?")) {
+                signOut(auth).catch((error) => {
+                    console.error("Erro ao sair:", error);
+                    showToast("Erro ao fazer logout", "error");
+                });
+            }
+        };
+
+        window.toggleViewMode = () => { 
+            if (!window.appState.isAdmin) return;
+            window.appState.viewAsAdmin = !window.appState.viewAsAdmin;
+            console.log("Visão Admin alterada para:", window.appState.viewAsAdmin);
+            updateAdminUI(); 
+            // Fecha qualquer modal de detalhe aberto para evitar conflito de UI
+            window.closeModal('alunoDetailModal');
+            window.closeModal('turmaDetailModal');
+        };
+        // Fim das funções de login completas
 
         let listenersIniciados = false; 
         let unsubscribeAlunos = null; 
         let unsubscribeTurmas = null; 
 
+        // CORREÇÃO 3: onAuthStateChanged completa para mostrar o botão de login/logout
         onAuthStateChanged(auth, (user) => {
              console.log("onAuthStateChanged:", user ? user.email : 'Nenhum utilizador'); 
              try { 
@@ -343,14 +346,21 @@
                         window.appState.isLoggedIn = false;
                         
                         if (loginMessage) loginMessage.textContent = 'Acesso não autorizado.';
-                        if (authError) authError.textContent = `O email ${user.email} não tem permissão para usar este sistema.`;
+                        if (authError) authError.textContent = `O email ${user.email} não tem permissão.`;
                         if (loginButton) loginButton.style.display = 'none'; // Esconde o botão de login
-                        if (logoutBtn) logoutBtn.style.display = 'inline-block'; // Mostra botão de logout
                         
+                        // Mostra o botão de logout para permitir trocar de conta
+                        if (logoutBtn) {
+                            logoutBtn.innerHTML = `👤 Sair (${user.email.split('@')[0]})`;
+                            logoutBtn.style.display = 'inline-block';
+                            logoutBtn.style.margin = '20px auto 0';
+                            logoutBtn.style.maxWidth = '250px';
+                            // Move o botão de logout para dentro da tela de login
+                            loginScreen.appendChild(logoutBtn);
+                        }
+
                         if (loginScreen) loginScreen.style.display = 'flex';
                         if (appContainer) appContainer.style.display = 'none';
-                        // Opcional: deslogar automaticamente o usuário não autorizado
-                        // signOut(auth);
                     }
                 } else { 
                     // --- 3. Usuário DESLOGADO ---
@@ -360,16 +370,23 @@
                     window.appState.isAdmin = false;
                     
                     if (loginMessage) loginMessage.textContent = 'Por favor, faça login para continuar.';
-                    if (authError) authError.textContent = ''; // Limpa erros antigos
+                    if (authError) authError.textContent = ''; 
                     
-                    // ESTA É A LINHA QUE CORRIGE O SEU PROBLEMA:
+                    // ***** CORRIGE O BOTÃO DE LOGIN PARA APARECER *****
                     if (loginButton) loginButton.style.display = 'block'; 
                     
                     if (loginScreen) loginScreen.style.display = 'flex';
                     if (appContainer) appContainer.style.display = 'none';
+
+                    // Move o botão logout de volta ao header (se ele foi movido)
+                    const headerActions = document.querySelector('.header-actions');
+                    if (headerActions && logoutBtn && !headerActions.contains(logoutBtn)) {
+                        headerActions.appendChild(logoutBtn);
+                        logoutBtn.style.maxWidth = '';
+                        logoutBtn.style.margin = '';
+                    }
                     if (logoutBtn) logoutBtn.style.display = 'none';
                     
-                    // Garante que os listeners sejam parados se existirem
                     if (unsubscribeAlunos) { unsubscribeAlunos(); unsubscribeAlunos = null; }
                     if (unsubscribeTurmas) { unsubscribeTurmas(); unsubscribeTurmas = null; }
                     listenersIniciados = false;
@@ -378,10 +395,10 @@
                  console.error("ERRO CRÍTICO em onAuthStateChanged:", e); 
                  if (loginMessage) loginMessage.textContent = 'Erro crítico no login.';
                  if (authError) authError.textContent = e.message;
-                 if (loginButton) loginButton.style.display = 'block'; // Mostra o botão mesmo em caso de erro
+                 if (loginButton) loginButton.style.display = 'block'; 
              }
         });
-
+        // Fim de onAuthStateChanged completa
 
         // --- Funções Admin, FAB e Seleção Múltipla ---
         function updateAdminUI() {
@@ -535,5 +552,5 @@
 
     </script>
 </body>
-
 </html>
+
