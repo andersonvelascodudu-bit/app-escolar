@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistema Escolar NATA</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#004d40">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <style>
+        /* Variáveis CSS */
+        :root {
+            --bg-body: #f5f5f5; --bg-card: white; --color-text: #333; --color-secondary: #666;
+            --color-border: #e0e0e0; --color-input-bg: rgba(255,255,255,0.95); --color-chip-bg: white;
+            --color-chip-border: #ddd; --color-active-link: #2196F3; --color-warning: #f57c00;
+            --color-warning-bg: #fff3e0; --color-danger-bg: #ffebee; --color-secondary-btn-bg: #f0f0f0;
+            --color-secondary-btn-text: #666; --color-selection-border: #607D8B; --color-selected-border: #2196F3;
+            --avatar-border-radius: 8px; --header-height: auto; /* Altura Auto Header */ --tabs-height: 50px;
+        }
+        .dark-mode {
+            --bg-body: #121212; --bg-card: #1e1e1e; --color-text: #e0e0e0; --color-secondary: #b0b0b0;
+            --color-border: #333333; --color-input-bg: #2d2d2d; --color-chip-bg: #2d2d2d;
+            --color-chip-border: #444444; --color-active-link: #64b5f6; --color-warning: #ffa726;
+            --color-warning-bg: #4c3e00; --color-danger-bg: #4a1c1c; --color-secondary-btn-bg: #2d2d2d;
+            --color-secondary-btn-text: #b0b0b0; --color-selection-border: #78909C; --color-selected-border: #64b5f6;
+        }
+        /* Estilos Globais */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: var(--bg-body); color: var(--color-text); padding-bottom: 20px; /* Reduzido padding bottom sem nav */ transition: background 0.3s, color 0.3s; }
+        /* Header */
+        .header { color: white; padding: 15px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.1); background-color: #004d40; background-size: cover; background-position: center center; background-repeat: no-repeat; position: relative; }
+        .header::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)); z-index: 1; }
+        .header h1, .header-actions { position: relative; z-index: 2; }
+        .header h1 { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+        .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .search-box { flex: 1 1 150px; padding: 10px 15px; border: none; border-radius: 25px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); min-width: 100px; opacity: 0.9; }
+        .admin-btn { padding: 10px 12px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.5); border-radius: 25px; color: white; font-size: 11px; cursor: pointer; white-space: nowrap; transition: all 0.3s; flex-shrink: 0; min-width: 65px; text-align: center; line-height: 1.2; }
+        .admin-btn:hover { background: rgba(255,255,255,0.3); }
+        .admin-btn.active { background: #4CAF50; border-color: #4CAF50; }
+        .theme-toggle-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.5); border-radius: 50%; color: white; font-size: 14px; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0; }
+        .theme-toggle-btn:hover { background: rgba(255,255,255,0.3); }
+        /* Tabs - NÃO MAIS STICKY */
+        .tabs { display: flex; background: var(--bg-card); border-bottom: 1px solid var(--color-border); /* Removido position sticky e top */ z-index: 99; height: var(--tabs-height); }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 500; transition: all 0.3s; color: var(--color-secondary); }
+        .tab.active { color: var(--color-active-link); border-bottom-color: var(--color-active-link); }
+        /* Content - Padding Top Fixo */
+        #contentContainer { padding-top: 0; /* Removido padding-top dinâmico */ display: none; }
+        .content { padding: 15px; }
+        /* Restante do CSS (Cards, Modais, Forms, etc.) igual */
+        .filter-chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 15px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .filter-chips::-webkit-scrollbar { display: none; }
+        .chip { padding: 8px 16px; background: var(--color-chip-bg); border: 1px solid var(--color-chip-border); border-radius: 20px; font-size: 13px; cursor: pointer; white-space: nowrap; transition: all 0.3s; color: var(--color-secondary); }
+        .chip.active { background: var(--color-active-link); color: white; border-color: var(--color-active-link); }
+        .card { background: var(--bg-card); border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: default; transition: all 0.3s; border: 2px solid transparent; position: relative; }
+        .dark-mode .card { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+        .card:not(.selectable):active { transform: scale(0.98); }
+        .card.selectable { cursor: pointer; border-color: var(--color-selection-border); }
+        .card.selected { border-color: var(--color-selected-border); box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3); }
+        .card.selected::before { content: '✓'; position: absolute; top: 10px; right: 10px; background-color: var(--color-selected-border); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; z-index: 1; }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .avatar, .avatar-placeholder { width: 50px; height: 50px; border-radius: var(--avatar-border-radius); object-fit: cover; background: var(--color-border); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 11px; text-align: center; line-height: 1.2; overflow: hidden; flex-shrink: 0; color: var(--color-text); }
+        .avatar-placeholder { background: linear-gradient(135deg, #455A64 0%, #263238 100%); color: white; font-size: 20px; }
+        .avatar-placeholder-semfoto { background: #333; color: white; }
+        .avatar-placeholder-transferido { background: var(--color-warning); color: white; font-weight: bold; }
+        .card-info { flex: 1; min-width: 0; }
+        .card-title { font-weight: 600; font-size: 16px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-subtitle { color: var(--color-secondary); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .tag { padding: 3px 8px; background: var(--color-border); border-radius: 12px; font-size: 10px; color: var(--color-secondary); }
+        .dark-mode .tag { background: #2d2d2d; color: #b0b0b0; }
+        .tag.warning { background: var(--color-warning-bg); color: var(--color-warning); }
+        .tag.danger { background: var(--color-danger-bg); color: #c62828; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+        .stat-item { background: var(--color-border); padding: 8px 5px; border-radius: 8px; text-align: center; }
+        .dark-mode .stat-item { background: #2d2d2d; }
+        .stat-value { font-size: 16px; font-weight: 700; color: var(--color-active-link); }
+        .stat-label { font-size: 9px; color: var(--color-secondary); margin-top: 3px; white-space: nowrap; }
+        .fab { position: fixed; bottom: 30px; /* Ajustado bottom sem nav */ right: 20px; width: auto; min-width: 56px; height: 56px; border-radius: 28px; padding: 0 20px; background: linear-gradient(135deg, #2196F3 0%, #004d40 100%); color: white; border: none; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; z-index: 101; }
+        .fab:active { transform: scale(0.95); }
+        #deleteSelectedBtn { background: #f44336; box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4); }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .modal.active { display: flex; align-items: flex-start; justify-content: center; padding: 20px; }
+        .modal-content { background: var(--bg-card); border-radius: 16px; width: 100%; max-width: 500px; margin: auto; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s; }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--bg-card); z-index: 1; }
+        .modal-header h2 { font-size: 18px; font-weight: 600; color: var(--color-text); }
+        .close-btn { background: none; border: none; font-size: 28px; cursor: pointer; color: var(--color-secondary); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+        .modal-body { padding: 20px; }
+        .form-group { margin-bottom: 18px; }
+        .form-label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: var(--color-secondary); }
+        .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-chip-border); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--color-chip-bg); color: var(--color-text); transition: border-color 0.2s; }
+        .form-group.inline-fields { display: flex; gap: 10px; align-items: flex-start; }
+        .form-group.inline-fields > div { flex: 1; }
+        .form-input:focus { outline: none; border-color: var(--color-active-link); }
+        textarea.form-input { min-height: 70px; resize: vertical; }
+        .form-section-title { font-size: 15px; font-weight: 600; color: var(--color-active-link); margin-top: 20px; margin-bottom: 12px; padding-bottom: 5px; border-bottom: 1px solid var(--color-border); }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .btn-primary { background: linear-gradient(135deg, #2196F3 0%, #004d40 100%); color: white; }
+        .btn-secondary { background: var(--color-secondary-btn-bg); color: var(--color-secondary-btn-text); }
+        .btn-primary:active, .btn-secondary:active { transform: scale(0.98); opacity: 0.9; }
+        .btn-danger { background: #f44336; color: white; margin-top: 10px; }
+        .detail-section { margin-bottom: 18px; }
+        .detail-section h3 { font-size: 13px; color: var(--color-active-link); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--color-border); align-items: baseline; }
+        .detail-label { width: 35%; color: var(--color-secondary); font-size: 12px; flex-shrink: 0; }
+        .detail-value { flex: 1; font-weight: 500; font-size: 14px; color: var(--color-text); white-space: pre-wrap; word-break: break-word; }
+        .detail-text-area { padding: 8px; background: var(--color-input-bg); border-radius: 6px; font-size: 13px; white-space: pre-wrap; min-height: 40px; border: 1px solid var(--color-border); margin-top: 5px; }
+        .detail-avatar { width: 100px; height: 100px; border-radius: var(--avatar-border-radius); object-fit: cover; margin: 0 auto 15px; display: block; border: 3px solid var(--color-border); }
+        .turma-aluno-list .card { padding: 10px; margin-bottom: 8px; cursor: pointer; }
+        .turma-aluno-list .card-header { margin-bottom: 0; gap: 10px; }
+        .turma-aluno-list .avatar, .turma-aluno-list .avatar-placeholder { width: 35px; height: 35px; font-size: 9px; border-radius: var(--avatar-border-radius); }
+        .turma-aluno-list .avatar-placeholder { font-size: 14px; }
+        .turma-aluno-list .card-title { font-size: 14px; margin-bottom: 2px; }
+        .turma-aluno-list .card-subtitle { font-size: 11px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--color-secondary); }
+        .empty-state h3 { font-size: 16px; margin-bottom: 5px; }
+        .empty-state p { font-size: 13px; }
+        .sync-status { position: fixed; bottom: 30px; /* Ajustado bottom sem nav */ left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 15px; border-radius: 25px; font-size: 11px; display: none; align-items: center; gap: 6px; z-index: 999; }
+        .sync-status.active { display: flex; }
+        #toastContainer { position: fixed; bottom: 30px; /* Ajustado bottom sem nav */ left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column-reverse; align-items: center; gap: 8px; width: 90%; max-width: 400px; }
+        .toast { padding: 10px 15px; border-radius: 8px; color: white; font-size: 13px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: translateY(10px); width: 100%; text-align: center; }
+        .toast-success { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); }
+        .toast-error { background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); }
+        .modal-nav { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
+        .modal-nav .btn { flex: 1; padding: 10px; font-size: 14px; }
+        /* Bottom Nav Removido */
+        @media (max-width: 480px) { .header-actions { gap: 5px; } .admin-btn { padding: 8px 10px; font-size: 10px; min-width: 55px; } .theme-toggle-btn { width: 35px; height: 35px; } }
+        @media (max-width: 360px) { .stats-grid { grid-template-columns: repeat(2, 1fr) !important; } .stat-value { font-size: 16px; } }
+        #loginScreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        #loginScreen h2 { margin-bottom: 30px; }
+        #loginScreen p { margin-bottom: 20px; }
+        #loginScreen button { margin-top: 10px; }
+        #loginScreen #authError { margin-top: 15px; min-height: 1.2em; }
+        #currentPhotoContainer img { max-width: 80px; max-height: 80px; border-radius: var(--avatar-border-radius); object-fit: cover; border: 1px solid var(--color-border); margin-bottom: 10px; }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <div id="loginScreen">
+        <h2 style="color: var(--color-text);">Sistema Escolar NATA</h2>
+        <p id="loginMessage" style="color: var(--color-secondary);">A verificar autenticação...</p>
+        <button id="loginButton" class="btn btn-primary" style="display: none; max-width: 250px;">Entrar com Google</button>
+        <p id="authError" style="color: #f44336; font-size: 14px;"></p>
+    </div>
+
+    <div id="appContainer" style="display: none;">
+        <div class="header" id="mainHeader">
+            <h1>Sistema Escolar NATA</h1>
+            <div class="header-actions">
+                <input type="text" class="search-box" id="searchBox" placeholder="Buscar aluno...">
+                <button class="admin-btn" id="toggleViewBtn" onclick="window.toggleViewMode()" style="display: none; background-color: #ff9800; border-color: #ff9800;">👤 Mudar Vista</button>
+                <button class="admin-btn" id="logoutBtn" onclick="window.logout()" style="display: none;">👤 Logout</button>
+                <button class="admin-btn" id="selectBtn" onclick="window.toggleSelectionMode()" style="display: none; background-color: #607D8B; border-color: #607D8B;">Selecionar</button>
+                <button class="admin-btn" id="backupBtn" onclick="window.showBackupOptions()" style="display: none; background-color: #f57c00; border-color: #f57c00;">Backup</button>
+                <button class="admin-btn" id="importBtn" onclick="window.showImportModal()" style="display: none; background-color: #388E3C; border-color: #388E3C;">Importar</button>
+                <button class="theme-toggle-btn" id="themeToggleBtn" onclick="window.toggleTheme()">Tema</button> </div>
+        </div>
+        <div class="tabs" id="mainTabs">
+            <div class="tab active" onclick="window.switchTab('alunos')">Alunos</div>
+            <div class="tab" onclick="window.switchTab('turmas')">Turmas</div>
+        </div>
+        <div id="contentContainer">
+            <div class="content" id="alunosContent">
+                <div class="filter-chips" id="turmaFilters"></div>
+                <div id="alunosList"><div class="loading">A carregar alunos...</div></div>
+            </div>
+            <div class="content" id="turmasContent" style="display:none;">
+                <div id="turmasList"><div class="loading">A carregar turmas...</div></div>
+            </div>
+        </div>
+        <button class="fab" id="fabBtn" onclick="window.openAddModal()" style="display:none;">+</button>
+        <button class="fab" id="deleteSelectedBtn" onclick="window.deleteSelectedAlunos()" style="display:none;">🗑️ Excluir (0)</button>
+        <div class="sync-status" id="syncStatus"><span>●</span> Sincronizando...</div>
+        <div id="toastContainer"></div>
+        <div class="modal" id="alunoModal"> <div class="modal-content"> <div class="modal-header"> <h2 id="alunoModalTitle">Adicionar Aluno</h2> <button class="close-btn" onclick="window.closeModal('alunoModal')">&times;</button> </div> <div class="modal-body"> <form id="alunoForm" onsubmit="window.saveAluno(event)"> <div class="form-section-title">Foto do Aluno</div> <div class="form-group"> <label class="form-label">Link da Foto (Ex: Google Drive)</label> <input type="url" class="form-input" id="alunoFotoURL" placeholder="Cole o link de partilha aqui..."> <p style="font-size: 11px; margin-top: 5px; color: var(--color-secondary);">* Certifique-se que a partilha é "Qualquer pessoa com o link".</p> </div> <div class="form-group" id="currentPhotoContainer" style="display:none; text-align:center;"> <label class="form-label">Foto Atual</label> <img id="currentPhotoPreview" src=""> <button type="button" class="btn btn-danger" style="width: auto; padding: 5px 10px; margin: 10px auto 0; font-size: 12px;" onclick="window.removeCurrentPhotoURL()">Remover Link</button> </div> <div class="form-section-title">Dados Básicos</div> <div class="form-group"><label class="form-label">Nome Completo *</label><input type="text" class="form-input" id="alunoNome" required></div> <div class="form-group inline-fields"><div><label class="form-label">Matrícula *</label><input type="text" class="form-input" id="alunoMatricula" required></div><div><label class="form-label">Nº Diário</label><input type="text" class="form-input" id="alunoDiario"></div></div> <div class="form-group"><label class="form-label">Turma *</label><select class="form-input" id="alunoTurma" required></select></div> <div class="form-group inline-fields"><div><label class="form-label">Status</label><select class="form-input" id="alunoStatus"><option value="Matriculado">Matriculado</option><option value="Transferido">Transferido</option></select></div><div><label class="form-label">Nascimento</label><input type="date" class="form-input" id="alunoNascimento"></div></div> <div class="form-group inline-fields"><div><label class="form-label">CPF</label><input type="text" class="form-input" id="alunoCPF"></div><div><label class="form-label">Telefone (Aluno)</label><input type="tel" class="form-input" id="alunoTelefone"></div></div> <div class="form-section-title">Responsável 1</div> <div class="form-group inline-fields"><div style="flex:2;"><label class="form-label">Nome</label><input type="text" class="form-input" id="alunoResponsavel1Nome"></div><div><label class="form-label">Parentesco</label><select class="form-input" id="alunoResponsavel1Tipo"><option value="">N/I</option><option value="Mãe">Mãe</option><option value="Pai">Pai</option><option value="Outro">Outro</option></select></div></div> <div class="form-group"><label class="form-label">Contato</label><input type="tel" class="form-input" id="alunoResponsavel1Tel"></div> <div class="form-section-title">Responsável 2</div> <div class="form-group inline-fields"><div style="flex:2;"><label class="form-label">Nome</label><input type="text" class="form-input" id="alunoResponsavel2Nome"></div><div><label class="form-label">Parentesco</label><select class="form-input" id="alunoResponsavel2Tipo"><option value="">N/I</option><option value="Mãe">Mãe</option><option value="Pai">Pai</option><option value="Outro">Outro</option></select></div></div> <div class="form-group"><label class="form-label">Contato</label><input type="tel" class="form-input" id="alunoResponsavel2Tel"></div> <div class="form-section-title">Info Adicional</div> <div class="form-group inline-fields"><div><label class="form-label">PCD?</label><select class="form-input" id="alunoPCD"><option value="false">Não</option><option value="true">Sim</option></select></div><div><label class="form-label">Prova Dif.?</label><select class="form-input" id="alunoProvaDif"><option value="false">Não</option><option value="true">Sim</option></select></div></div> <div class="form-group"><label class="form-label">Monitorias</label><textarea class="form-input" id="alunoMonitorias"></textarea></div> <div class="form-group"><label class="form-label">Projetos</label><textarea class="form-input" id="alunoProjetos"></textarea></div> <div class="form-group"><label class="form-label">Obs 1</label><textarea class="form-input" id="alunoObs1"></textarea></div> <div class="form-section-title">Disciplinar</div> <div class="form-group"><label class="form-label">Dispensas</label><textarea class="form-input" id="alunoDispensas"></textarea></div> <div class="form-group"><label class="form-label">Notificações</label><textarea class="form-input" id="alunoNotificacoes"></textarea></div> <div class="form-group"><label class="form-label">Advertências</label><textarea class="form-input" id="alunoAdvertencias"></textarea></div> <div class="form-group"><label class="form-label">Suspensões</label><textarea class="form-input" id="alunoSuspensoes"></textarea></div> <div class="form-group"><label class="form-label">Obs 2</label><textarea class="form-input" id="alunoObs2"></textarea></div> <button type="submit" class="btn btn-primary" id="saveAlunoBtn">Salvar</button> <button type="button" class="btn btn-danger" id="deleteAlunoBtn" onclick="window.deleteAluno()" style="display:none;">Excluir</button> </form> </div> </div> </div>
+        <div class="modal" id="alunoDetailModal"><div class="modal-content"><div class="modal-header"><h2>Detalhes Aluno</h2><button class="close-btn" onclick="window.closeModal('alunoDetailModal')">&times;</button></div><div class="modal-body" id="alunoDetailBody"></div></div></div>
+        <div class="modal" id="turmaModal"><div class="modal-content"><div class="modal-header"><h2 id="turmaModalTitle">Adicionar Turma</h2><button class="close-btn" onclick="window.closeModal('turmaModal')">&times;</button></div><div class="modal-body"><form id="turmaForm" onsubmit="window.saveTurma(event)"><div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="turmaNome" required></div><div class="form-group"><label class="form-label">Série/Ano</label><input type="text" class="form-input" id="turmaSerie"></div><div class="form-group"><label class="form-label">Obs</label><textarea class="form-input" id="turmaObs"></textarea></div><button type="submit" class="btn btn-primary">Salvar</button><button type="button" class="btn btn-danger" id="deleteTurmaBtn" onclick="window.deleteTurma()" style="display:none;">Excluir</button></form></div></div></div>
+        <div class="modal" id="turmaDetailModal"><div class="modal-content"><div class="modal-header"><h2>Detalhes Turma</h2><button class="close-btn" onclick="window.closeModal('turmaDetailModal')">&times;</button></div><div class="modal-body" id="turmaDetailBody"></div></div></div>
+        <div class="modal" id="backupModal"><div class="modal-content" style="max-width:400px;"><div class="modal-header"><h2>Backup (Exportar CSV)</h2><button class="close-btn" onclick="window.closeModal('backupModal')">&times;</button></div><div class="modal-body"><p>Exportar dados como planilha CSV:</p><button class="btn btn-primary" onclick="window.exportAlunosCSV()" style="margin-bottom:10px;">Exportar Alunos</button><button class="btn btn-secondary" onclick="window.exportTurmasCSV()">Exportar Turmas</button></div></div></div>
+        <div class="modal" id="importModal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h2>Importar (CSV)</h2><button class="close-btn" onclick="window.closeModal('importModal')">&times;</button></div><div class="modal-body"><div class="form-group"><label class="form-label">Tipo</label><select id="importType" class="form-input"><option value="alunos">Alunos</option><option value="turmas">Turmas</option></select></div><div class="form-group"><label class="form-label">Arquivo CSV</label><input type="file" id="csvFileInput" accept=".csv" class="form-input"></div><div style="background:var(--color-warning-bg);padding:10px;border-radius:8px;font-size:13px;color:var(--color-text);margin-bottom:20px;"><strong>Atenção:</strong><ul style="margin-left:20px;margin-top:5px;"><li>CSV simples (vírgula).</li><li>Cabeçalhos idênticos aos campos.</li><li>Sem vírgulas nos dados.</li><li><code>pcd</code>/<code>provaDif</code> = <code>true</code> ou <code>false</code>.</li><li>Use backup como modelo.</li></ul></div><button class="btn btn-primary" onclick="window.handleImport()">Importar</button><div id="importStatus" style="text-align:center;margin-top:15px;"></div></div></div></div>
+
+        </div> <script type="module">
+        console.log("Script principal iniciado.");
+
+        // Imports Firebase
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, onSnapshot, updateDoc, deleteDoc, doc, addDoc, setDoc, enableIndexedDbPersistence, query, orderBy, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        console.log("Módulos Firebase importados.");
+
+        // *** IMPORTANTE: Cole aqui a sua configuração do Firebase ***
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN.firebaseapp.com",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET.appspot.com",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
+        
+        // Init Firebase & Serviços
+        let app, db, auth, provider;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app); 
+            provider = new GoogleAuthProvider(); 
+            console.log("Firebase inicializado com sucesso.");
+        } catch (error) {
+             console.error("ERRO GRAVE: Falha ao inicializar o Firebase. Verifique 'firebaseConfig'.", error);
+             document.getElementById('loginMessage').textContent = "Erro de Configuração";
+             document.getElementById('authError').textContent = "Falha Firebase. Verifique Consola.";
+             throw new Error("Parando execução: erro Firebase init.");
+        }
+
+        // Estado Global
+        window.appState = {
+            isAdmin: false, viewAsAdmin: true, currentTab: 'alunos', currentFilter: 'Todos', 
+            editingAlunoId: null, editingTurmaId: null, turmasData: [], alunosData: [], 
+            searchQuery: '', 
+            // *** IMPORTANTE: Lista de emails que podem ACESSAR a app ***
+            authorizedUserEmails: ['seu_email_aqui@exemplo.com', 'outro@exemplo.com'], 
+            // *** IMPORTANTE: Lista de emails que têm permissão de ADMIN ***
+            adminEmails: ['seu_email_admin@exemplo.com'], 
+            userEmail: null, isLoggedIn: false, 
+            filteredAlunos: [], currentAlunoIndex: -1, filteredTurmas: [], currentTurmaIndex: -1,
+            isSelectionModeActive: false, selectedAlunoIds: [] 
+        };
+
+        // --- Persistência Offline ---
+        enableIndexedDbPersistence(db).then(() => console.log("Persistência ativada.")).catch(console.warn);
+
+        // --- Funções Utilitárias ---
+        window.openModal = (id) => { document.getElementById(id)?.classList.add('active'); document.body.style.overflow = 'hidden'; }
+        window.closeModal = (id) => { document.getElementById(id)?.classList.remove('active'); document.body.style.overflow = ''; }
+        window.toggleTheme = () => { 
+             const isDark = document.body.classList.toggle('dark-mode'); 
+             localStorage.setItem('theme', isDark ? 'dark' : 'light'); 
+             const btn = document.getElementById('themeToggleBtn'); 
+             // Altera o TEXTO do botão em vez do ícone
+             if(btn) btn.textContent = isDark ? 'Claro' : 'Escuro'; 
+        }
+        function applySavedTheme() { 
+             try { 
+                 const savedTheme = localStorage.getItem('theme'); 
+                 const themeBtn = document.getElementById('themeToggleBtn'); 
+                 if (!themeBtn) return; 
+                 if (savedTheme === 'light') { 
+                     document.body.classList.remove('dark-mode'); 
+                     themeBtn.textContent = 'Escuro'; // Texto inicial para tema claro
+                 } else { 
+                     document.body.classList.add('dark-mode'); 
+                     themeBtn.textContent = 'Claro'; // Texto inicial para tema escuro
+                 } 
+             } catch(e){ console.error("Erro applySavedTheme:", e); }
+        }
+        window.showToast = (message, type = 'success') => { const c = document.getElementById('toastContainer'); if (!c) return; const t = document.createElement('div'); t.className = `toast toast-${type}`; t.textContent = message; c.appendChild(t); setTimeout(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; }, 10); setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(-10px)'; t.addEventListener('transitionend', () => t.remove()); }, 4000); }
+        function escapeHTML(str) { if (typeof str !== 'string') return String(str||''); const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }; return str.replace(/[&<>"']/g, (m) => map[m]); }
+        function formatDate(d) { try { return d ? new Date(d + 'T03:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric'}) : 'N/D'; } catch (e) { console.warn("Data inválida:", d); return 'Inválido'; } }
+        function calculateAge(d) { try { if (!d) return ''; const b = new Date(d+'T03:00:00Z'), t = new Date(); let a = t.getFullYear() - b.getFullYear(); const m = t.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && t.getDate() < b.getDate())) a--; return a >= 0 ? `(${a}a)`: ''; } catch (e) { return ''; } }
+        function getInitials(n) { if (!n) return ''; const p = n.trim().split(' ').filter(Boolean); return p.length === 0 ? '' : (p.length === 1 ? p[0].substring(0, 2).toUpperCase() : (p[0][0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase()); }
+        function convertGoogleDriveLink(url) { if (!url) return ''; let id = null; const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|view\?id=)([a-zA-Z0-9_-]+)/); if (m && m[1]) id = m[1]; return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w300` : url; }
+
+        // --- Lógica de Autenticação ---
+        const loginScreen = document.getElementById('loginScreen');
+        const loginButton = document.getElementById('loginButton');
+        const loginMessage = document.getElementById('loginMessage');
+        const authError = document.getElementById('authError');
+        const logoutBtn = document.getElementById('logoutBtn'); 
+        const appContainer = document.getElementById('appContainer'); 
+        const toggleViewBtn = document.getElementById('toggleViewBtn'); 
+
+        const signIn = () => { /* ... (igual anterior) ... */ };
+        if (loginButton) loginButton.onclick = signIn;
+        window.logout = () => { /* ... (igual anterior) ... */ };
+        window.toggleViewMode = () => { /* ... (igual anterior) ... */ };
+
+        let listenersIniciados = false; 
+        let unsubscribeAlunos = null; 
+        let unsubscribeTurmas = null; 
+
+        onAuthStateChanged(auth, (user) => {
+             console.log("onAuthStateChanged:", user ? user.email : 'Nenhum utilizador'); 
+             try { 
+                if (user && user.email) { 
+                    if (window.appState.authorizedUserEmails.includes(user.email)) {
+                        window.appState.isLoggedIn = true; window.appState.userEmail = user.email;
+                        window.appState.isAdmin = window.appState.adminEmails.includes(user.email);
+                        window.appState.viewAsAdmin = window.appState.isAdmin; 
+                        console.log("Utilizador autorizado. Admin:", window.appState.isAdmin);
+                        if (loginScreen) loginScreen.style.display = 'none'; 
+                        if (appContainer) appContainer.style.display = 'block'; 
+                        if (!listenersIniciados) { iniciarListenersFirestore(); } 
+                        else { updateAdminUI(); }
+                        adjustLayout(); 
+                    } else { /* ... (Não Autorizado) ... */ }
+                } else { /* ... (Deslogado) ... */ }
+             } catch (e) { console.error("ERRO CRÍTICO em onAuthStateChanged:", e); /* ... */ }
+        });
+
+
+        // --- Funções Admin, FAB e Seleção Múltipla ---
+        function updateAdminUI() {
+             console.log("updateAdminUI chamado."); 
+             try { 
+                 if (!window.appState.isLoggedIn) { console.log("updateAdminUI: skip (não logado)"); return; }
+                 const isTrueAdmin = window.appState.isAdmin; 
+                 const showAdminFeatures = isTrueAdmin && window.appState.viewAsAdmin; 
+                 const isAlunosTab = window.appState.currentTab === 'alunos';
+                 const isSelectionMode = window.appState.isSelectionModeActive;
+                 // Botão Logout/Status
+                 const logoutButton = document.getElementById('logoutBtn'); 
+                 if (logoutButton) { logoutButton.innerHTML = `👤 ${isTrueAdmin ? (window.appState.viewAsAdmin ? 'Admin' : 'User (Admin)') : 'User'}<br><small>Logout</small>`; logoutButton.classList.toggle('active', isTrueAdmin && window.appState.viewAsAdmin); logoutButton.style.display = 'inline-block'; }
+                 // Botão Mudar Vista
+                 const toggleBtn = document.getElementById('toggleViewBtn');
+                 if (toggleBtn) { toggleBtn.style.display = isTrueAdmin ? 'inline-block' : 'none'; toggleBtn.textContent = window.appState.viewAsAdmin ? 'Ver como User' : 'Ver como Admin'; }
+                 // Outros botões Admin
+                 ['backupBtn', 'importBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = showAdminFeatures ? 'inline-block' : 'none'; });
+                 const selectBtn = document.getElementById('selectBtn'); if (selectBtn) selectBtn.style.display = (showAdminFeatures && isAlunosTab) ? 'inline-block' : 'none';
+                 const fabBtn = document.getElementById('fabBtn'); if (fabBtn) fabBtn.style.display = (showAdminFeatures && !isSelectionMode) ? 'flex' : 'none';
+                 const deleteBtn = document.getElementById('deleteSelectedBtn'); if (deleteBtn) { if(showAdminFeatures && isSelectionMode) updateDeleteButtonCount(); else deleteBtn.style.display = 'none'; }
+                 // Re-renderiza a lista atual
+                 if (isAlunosTab) window.renderAlunos(); else window.renderTurmas();
+             } catch (e) { console.error("Erro em updateAdminUI:", e); }
+        }
+        window.toggleAdmin = () => { console.warn("toggleAdmin obsoleto."); window.logout(); }; 
+        window.toggleSelectionMode = () => { /* ... (igual anterior) ... */ }
+        window.toggleAlunoSelection = (alunoId) => { /* ... (igual anterior) ... */ }
+        function updateDeleteButtonCount() { /* ... (igual anterior) ... */ }
+        window.deleteSelectedAlunos = async () => { /* ... (igual anterior) ... */ }
+        window.openAddModal = () => { /* ... (igual anterior) ... */ }
+        function populateTurmaSelect(selectId, selectedValue = '') { /* ... (igual anterior) ... */ }
+        window.removeCurrentPhotoURL = () => { /* ... (igual anterior) ... */ }
+
+        // --- Backup (Exportar CSV) ---
+        window.showBackupOptions = () => { if(window.appState.isAdmin && window.appState.viewAsAdmin) window.openModal('backupModal'); else showToast('Sem permissão', 'error'); } 
+        function escapeCSVCell(c){ /* ... */ } 
+        function downloadCSV(csv, fname){ /* ... */ } 
+        window.exportAlunosCSV = () => { /* ... (com check viewAsAdmin) ... */ } 
+        window.exportTurmasCSV = () => { /* ... (com check viewAsAdmin) ... */ } 
+
+        // --- Importar (CSV) ---
+        window.showImportModal = () => { /* ... (com check viewAsAdmin) ... */ }
+        window.handleImport = () => { /* ... (com check viewAsAdmin) ... */ }
+        function parseCSV(t){ /* ... */ } 
+        async function processImport(data, type){ /* ... (com check viewAsAdmin) ... */ } 
+
+        // --- Navegação e Filtro ---
+        window.switchTab = (tabName) => {
+            if (!window.appState.isLoggedIn) return; 
+            if (window.appState.isAdmin && window.appState.viewAsAdmin && window.appState.isSelectionModeActive && window.appState.currentTab !== tabName) window.toggleSelectionMode(); 
+            window.appState.currentTab = tabName;
+            // Atualiza apenas as tabs superiores
+            document.querySelectorAll('.tabs .tab').forEach(el => el.classList.remove('active'));
+            const isAlunos = tabName === 'alunos';
+            document.querySelector(`.tabs .tab:nth-child(${isAlunos?1:2})`)?.classList.add('active');
+            // Não mexe mais na bottom-nav
+            const alunosEl = document.getElementById('alunosContent'); if(alunosEl) alunosEl.style.display = isAlunos ? 'block' : 'none';
+            const turmasEl = document.getElementById('turmasContent'); if(turmasEl) turmasEl.style.display = isAlunos ? 'none' : 'block';
+            updateAdminUI(); 
+            const searchBox = document.getElementById('searchBox'); if(searchBox) searchBox.placeholder = isAlunos ? 'Buscar aluno...' : 'Buscar turma...';
+            adjustLayout(); 
+        }
+        window.setFilter = (turmaNome) => { if (!window.appState.isLoggedIn) return; window.appState.currentFilter = turmaNome; document.querySelectorAll('#turmaFilters .chip').forEach(c => {c.classList.toggle('active', c.textContent === turmaNome);}); window.renderAlunos(); }
+
+        // --- Navegação Detalhes ---
+        window.showNextAluno = () => { /* ... */ }; window.showPrevAluno = () => { /* ... */ };
+        window.showNextTurma = () => { /* ... */ }; window.showPrevTurma = () => { /* ... */ };
+
+        // --- CRUD Alunos ---
+        window.saveAluno = async (event) => { /* ... (com check viewAsAdmin) ... */ }
+        window.openEditAlunoModal = (alunoId) => { /* ... (com check viewAsAdmin) ... */ }
+        window.deleteAluno = async () => { /* ... (com check viewAsAdmin) ... */ }
+        window.showAlunoDetail = (alunoId, skipAnimation = false) => { /* ... (com check viewAsAdmin para botão Editar) ... */ }
+
+        // --- CRUD Turmas ---
+        window.saveTurma = async (e) => { /* ... (com check viewAsAdmin) ... */ }
+        window.openEditTurmaModal = (id) => { /* ... (com check viewAsAdmin) ... */ }
+        window.deleteTurma = async () => { /* ... (com check viewAsAdmin) ... */ }
+        window.showTurmaDetail = (turmaId, skipAnimation = false) => { /* ... (com check viewAsAdmin para botão Editar) ... */ }
+
+        // --- Renderização Alunos ---
+        window.renderAlunos = () => {
+             console.log("renderAlunos chamado. ViewAsAdmin:", window.appState.viewAsAdmin); 
+             const list = document.getElementById('alunosList'), filters = document.getElementById('turmaFilters'); 
+             if(!list || !filters || !window.appState.isLoggedIn) { console.log("renderAlunos: skip"); return; }
+             console.log("renderAlunos - Dados Brutos:", window.appState.alunosData?.length ?? 0); // Usa ?. para segurança
+             let fHtml = `<div class="chip ${window.appState.currentFilter === 'Todos' ? 'active' : ''}" onclick="window.setFilter('Todos')">Todos</div>`;
+             (window.appState.turmasData || []).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).forEach(t => { fHtml += `<div class="chip ${window.appState.currentFilter === t.nome ? 'active' : ''}" onclick="window.setFilter('${escapeHTML(t.nome)}')">${escapeHTML(t.nome)}</div>`; });
+             filters.innerHTML = fHtml;
+             const q = window.appState.searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+             window.appState.filteredAlunos = (window.appState.alunosData || []).filter(a => { const fm = (window.appState.currentFilter === 'Todos' || a.turma === window.appState.currentFilter); if (!fm) return false; if (q.length === 0) return true; const sf = [a.nome, a.matricula, a.nascimento, a.cpf, a.responsavel1Nome, a.responsavel2Nome].map(val => String(val || '').toLowerCase()).join(' ').normalize("NFD").replace(/[\u0300-\u036f]/g,""); return sf.includes(q); });
+             console.log("renderAlunos - Dados Filtrados:", window.appState.filteredAlunos.length);
+             if (window.appState.filteredAlunos.length === 0) { list.innerHTML = `<div class="empty-state"><h3>Nenhum Aluno</h3><p>Verifique os filtros ou adicione novos alunos.</p></div>`; return; }
+             const showAdminFeaturesRender = window.appState.isAdmin && window.appState.viewAsAdmin; 
+             try { list.innerHTML = window.appState.filteredAlunos.map(a => { let tags = '', avatar = ''; if (a.status === 'Transferido') { avatar = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; } else if (a.fotoURL) { avatar = `<img src="${escapeHTML(convertGoogleDriveLink(a.fotoURL))}" class="avatar" alt="Foto" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"> <div class="avatar avatar-placeholder-semfoto" style="display:none;">S/ Foto</div>`; } else { avatar = `<div class="avatar avatar-placeholder-semfoto">S/ Foto</div>`; } if (a.status !== 'Transferido') { if (a.pcd) tags += '<span class="tag danger">PCD</span>'; if (a.provaDif) tags += '<span class="tag danger">PD</span>'; } const isSel = window.appState.selectedAlunoIds.includes(a.id); const cardCls = `card ${showAdminFeaturesRender && window.appState.isSelectionModeActive ? 'selectable' : ''} ${isSel ? 'selected' : ''}`; const clickH = (showAdminFeaturesRender && window.appState.isSelectionModeActive) ? `window.toggleAlunoSelection('${a.id}')` : `window.showAlunoDetail('${a.id}')`; const editButtonHtml = (showAdminFeaturesRender && !window.appState.isSelectionModeActive) ? `<button class="btn-secondary" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" style="padding:6px 10px; border-radius:6px; font-size:10px;">Editar</button>` : ''; return `<div class="${cardCls}" data-aluno-id="${a.id}" onclick="${clickH}"><div class="card-header"> ${avatar} <div class="card-info"><div class="card-title">${escapeHTML(a.nome)}</div><div class="card-subtitle">${escapeHTML(a.turma||'S/T')} / Mat: ${escapeHTML(a.matricula || '')}</div></div> ${editButtonHtml} </div> ${tags ? `<div class="card-tags">${tags}</div>` : ''} </div>`; }).join('');
+             } catch (error) { console.error("Erro renderAlunos map:", error); list.innerHTML = `<div class='empty-state'><h3 style='color:red;'>Erro!</h3><p>Erro ao exibir alunos.</p></div>`; }
+        }
+
+        // --- Renderização Turmas ---
+        window.renderTurmas = () => { 
+            console.log("renderTurmas chamado.");
+            const list = document.getElementById('turmasList'); 
+            if(!list || !window.appState.isLoggedIn) { console.log("renderTurmas: skip"); return; }
+            console.log("renderTurmas - Dados Brutos:", window.appState.turmasData?.length ?? 0);
+            const q = window.appState.searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,""); 
+            window.appState.filteredTurmas = (window.appState.turmasData || []).filter(t => { if(q.length === 0) return true; const sf = [t.nome, t.serie].filter(Boolean).join(' ').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); return sf.includes(q); }); 
+            console.log("renderTurmas - Dados Filtrados:", window.appState.filteredTurmas.length);
+            if (window.appState.filteredTurmas.length === 0) { list.innerHTML = `<div class="empty-state"><h3>Nenhuma Turma</h3><p>Adicione novas turmas.</p></div>`; return; } 
+            const alunosGlobais = window.appState.alunosData || []; 
+            const showAdminButtonsRender = window.appState.isAdmin && window.appState.viewAsAdmin; 
+            list.innerHTML = window.appState.filteredTurmas.map(t => { const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; const aT = alunosNaTurma.filter(a => a.status === 'Transferido').length; const aP = alunosNaTurma.filter(a => a.pcd === true).length; const aD = alunosNaTurma.filter(a => a.provaDif === true).length; const editButtonHtml = showAdminButtonsRender ? `<button class="btn-secondary" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" style="padding:6px 10px;border-radius:6px;font-size:10px;">Editar</button>` : ''; return `<div class="card" style="cursor:pointer;" onclick="window.showTurmaDetail('${t.id}')"><div class="card-header"><div class="avatar-placeholder" style="background:var(--color-border);color:var(--color-active-link); border-radius:var(--avatar-border-radius);">📚</div><div class="card-info"><div class="card-title">${escapeHTML(t.nome)}</div><div class="card-subtitle">${escapeHTML(t.serie||'N/D')}</div></div>${editButtonHtml}</div><div class="stats-grid"><div class="stat-item"><div class="stat-value">${aM}</div><div class="stat-label">Matric.</div></div><div class="stat-item"><div class="stat-value">${aT}</div><div class="stat-label">Transf.</div></div><div class="stat-item"><div class="stat-value">${aP}</div><div class="stat-label">PCD</div></div><div class="stat-item"><div class="stat-value">${aD}</div><div class="stat-label">ProvaDif</div></div></div></div>`; }).join(''); 
+        }
+
+        // --- Listeners do Firestore ---
+        function iniciarListenersFirestore() { /* ... (igual anterior com logs e try-catch) ... */ }
+
+        // --- Listener Busca ---
+        document.getElementById('searchBox')?.addEventListener('input', (e) => { /* ... (igual anterior) ... */ });
+
+        // --- Ajuste Layout Dinâmico ---
+        function adjustLayout() { /* ... (igual anterior) ... */ }
+        let resizeTimeout;
+        window.addEventListener('resize', () => { clearTimeout(resizeTimeout); resizeTimeout = setTimeout(adjustLayout, 150); });
+        // adjustLayout agora é chamado dentro de onAuthStateChanged quando app é exibido
+        const observer = new MutationObserver(adjustLayout); 
+        const headerEl = document.getElementById('mainHeader'); 
+        if (headerEl) observer.observe(headerEl, { attributes: true, childList: true, subtree: true, characterData: true });
+
+        // --- Inicializa ---
+        applySavedTheme(); 
+        
+        // Aplica Imagem de Fundo do Header
+        const headerImageUrl = 'https://drive.google.com/file/d/1RekSisj6PA_CqsmIhV12cluYpOL2VyWg/view?usp=drive_link'; 
+        const headerElement = document.getElementById('mainHeader');
+        if (headerImageUrl && headerImageUrl.startsWith('https://drive.google.com') && headerElement) { 
+            const directUrl = convertGoogleDriveLink(headerImageUrl); 
+            if (directUrl) { headerElement.style.backgroundImage = `url('${directUrl}')`; } 
+            else { console.warn("Não foi possível converter URL do header."); }
+        }
+        
+        // --- PWA: Registar o Service Worker ---
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./service-worker.js') 
+              .then(reg => console.log('ServiceWorker registado:', reg.scope))
+              .catch(err => console.error('Registo ServiceWorker falhou:', err));
+          });
+        }
+        console.log("Script principal finalizado (aguardando Auth state).");
+
+    </script>
+</body>
+</html>
