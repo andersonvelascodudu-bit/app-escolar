@@ -386,11 +386,9 @@
         <div id="contentContainer">
             <div class="content" id="alunosContent">
                 <div class="filter-chips" id="turmaFilters"></div>
-                <p style="color: yellow;">TESTE ALUNOS LIST VISÍVEL?</p> 
                 <div id="alunosList"><div class="loading">A carregar alunos...</div></div>
             </div>
             <div class="content" id="turmasContent" style="display:none;">
-                <p style="color: yellow;">TESTE TURMAS LIST VISÍVEL?</p>
                 <div id="turmasList"><div class="loading">A carregar turmas...</div></div>
             </div>
         </div>
@@ -570,7 +568,7 @@
         let unsubscribeAlunos = null; 
         let unsubscribeTurmas = null; 
 
-        onAuthStateChanged(auth, (user) => { /* ... */ 
+        onAuthStateChanged(auth, (user) => { 
              console.log("onAuthStateChanged:", user ? user.email : 'Nenhum utilizador'); 
              try { 
                 if (user && user.email) { 
@@ -585,7 +583,13 @@
                             iniciarListenersFirestore(); 
                             listenersIniciados = true;
                         } else { updateAdminUI(); }
+                        
+                        // *** ADICIONADO ALERT ANTES ***
+                        alert("onAuthStateChanged: Chamando switchTab('alunos')..."); 
                         window.switchTab('alunos'); 
+                        // *** ADICIONADO ALERT DEPOIS ***
+                        alert("onAuthStateChanged: switchTab('alunos') foi chamado."); 
+
                     } else {
                         console.warn("Utilizador NÃO autorizado:", user.email);
                         window.appState.isLoggedIn = false;
@@ -639,7 +643,8 @@
                  if (fabBtn) fabBtn.style.display = (showAdminFeatures && !isSelectionMode) ? 'flex' : 'none';
                  const deleteBtn = document.getElementById('deleteSelectedBtn'); 
                  if (deleteBtn) { if(showAdminFeatures && isSelectionMode) updateDeleteButtonCount(); else deleteBtn.style.display = 'none'; }
-                 if (isAlunosTab) window.renderAlunos(); else window.renderTurmas();
+                 // *** CHAMADA MOVIDA PARA DENTRO DE switchTab PARA GARANTIR ORDEM ***
+                 // if (isAlunosTab) window.renderAlunos(); else window.renderTurmas();
              } catch (e) { console.error("Erro em updateAdminUI:", e); }
         }
         window.toggleSelectionMode = () => { /* ... */ 
@@ -718,20 +723,43 @@
         function parseCSV(t){ /* ... */ const l=t.replace(/\r/g,'').split('\n').filter(Boolean); if(l.length < 1) throw new Error("CSV vazio ou inválido."); const h=l[0].split(',').map(x=>x.trim()); if(h.length===0||(h.length===1&&h[0]==='')) throw new Error("Header (cabeçalho) inválido."); const d=[]; for(let i=1;i<l.length;i++){ const v=l[i].split(','); if (v.length !== h.length) { console.warn(`Linha ${i+1} ignorada: número de colunas (${v.length}) diferente do header (${h.length}).`); continue; } let o={}; for(let j=0;j<h.length;j++){ const hdr=h[j]; if (!hdr) continue; let val=v[j]?v[j].trim():''; if (val.startsWith('"') && val.endsWith('"')) { val = val.substring(1, val.length - 1).replace(/""/g, '"'); } if(hdr==='pcd'||hdr==='provaDif') val=(val.toLowerCase()==='true'); o[hdr]=val; } d.push(o); } return d; }
         async function processImport(data, type){ /* ... */ if (!window.appState.viewAsAdmin) throw new Error("Sem permissão."); const coll=(type==='alunos')?'alunos':'turmas', batch=writeBatch(db); data.forEach(item=>{ Object.keys(item).forEach(k=>{if(item[k]===undefined || item[k]==='') delete item[k];}); if (type === 'alunos' && !item.nome) return; if (type === 'turmas' && !item.nome) return; const ref=doc(collection(db,coll)); batch.set(ref,item);}); try { await batch.commit(); } catch (e) { console.error("Erro no commit do batch:", e); throw new Error("Falha ao gravar no banco. Verifique os dados."); } }
 
-        // --- Navegação e Filtro ---
-        window.switchTab = (tabName) => { /* ... */ 
-            if (!window.appState.isLoggedIn) return; 
-            if (window.appState.viewAsAdmin && window.appState.isSelectionModeActive && window.appState.currentTab !== tabName) { window.toggleSelectionMode(); }
+        // --- Navegação e Filtro (COM ALERTS DE DISPLAY) ---
+        window.switchTab = (tabName) => { 
+            alert(`switchTab: Iniciando para '${tabName}'...`);
+            if (!window.appState.isLoggedIn) {
+                alert("switchTab: Saindo (não logado).");
+                return; 
+            }
+            if (window.appState.viewAsAdmin && window.appState.isSelectionModeActive && window.appState.currentTab !== tabName) { 
+                window.toggleSelectionMode(); 
+            }
+            
             window.appState.currentTab = tabName;
+
             document.querySelectorAll('.bottom-nav .nav-item').forEach(el => el.classList.remove('active'));
             const activeNavItem = document.querySelector(`.bottom-nav .nav-item[data-tab="${tabName}"]`);
             if (activeNavItem) activeNavItem.classList.add('active');
+            
             const isAlunos = tabName === 'alunos';
-            const alunosEl = document.getElementById('alunosContent'); if(alunosEl) alunosEl.style.display = isAlunos ? 'block' : 'none';
-            const turmasEl = document.getElementById('turmasContent'); if(turmasEl) turmasEl.style.display = isAlunos ? 'none' : 'block';
+            const alunosEl = document.getElementById('alunosContent'); 
+            const turmasEl = document.getElementById('turmasContent'); 
+
+            // Define visibilidade
+            if(alunosEl) alunosEl.style.display = isAlunos ? 'block' : 'none';
+            if(turmasEl) turmasEl.style.display = isAlunos ? 'none' : 'block';
+
+            // *** VERIFICA O DISPLAY *DEPOIS* DE DEFINIR ***
+            const alunosDisplay = alunosEl ? window.getComputedStyle(alunosEl).display : 'N/A';
+            const turmasDisplay = turmasEl ? window.getComputedStyle(turmasEl).display : 'N/A';
+            alert(`switchTab: *Depois* de definir:\n#alunosContent display=${alunosDisplay}\n#turmasContent display=${turmasDisplay}`);
+
             const headerTitle = document.querySelector('#mainHeader h1'); if (headerTitle) headerTitle.textContent = isAlunos ? 'Alunos' : 'Turmas';
             const searchBox = document.getElementById('searchBox'); if(searchBox) searchBox.placeholder = isAlunos ? 'Buscar aluno...' : 'Buscar turma...';
+            
+            alert("switchTab: Chamando updateAdminUI...");
+            // Chama updateAdminUI DEPOIS de definir o display
             updateAdminUI(); 
+            alert("switchTab: Finalizado.");
         }
         window.setFilter = (turmaNome) => { /* ... */ 
             if (!window.appState.isLoggedIn) return; 
@@ -848,90 +876,66 @@
             const mc = document.querySelector('#turmaDetailModal .modal-content'); if(mc) mc.scrollTop = 0; if (!skipAnimation) window.openModal('turmaDetailModal'); 
         }
 
-        // --- Renderização Alunos (COM ALERTS DE VERIFICAÇÃO DE ELEMENTOS) ---
+       
+        // --- Renderização Alunos (TESTE FINAL ULTRA SIMPLIFICADO) ---
         window.renderAlunos = () => {
-             alert("Função renderAlunos FOI CHAMADA."); 
-
-             console.log("renderAlunos chamado."); 
+             alert("Função renderAlunos CHAMADA."); 
              const list = document.getElementById('alunosList');
-             const filters = document.getElementById('turmaFilters'); // Procura pelos filtros
+             const filters = document.getElementById('turmaFilters'); 
              
-             // *** ADICIONADO ALERTS DE VERIFICAÇÃO ***
-             alert(`renderAlunos: Elemento #alunosList encontrado? ${list ? 'SIM' : 'NÃO'}`);
-             alert(`renderAlunos: Elemento #turmaFilters encontrado? ${filters ? 'SIM' : 'NÃO'}`);
-             alert(`renderAlunos: Utilizador está logado? ${window.appState.isLoggedIn ? 'SIM' : 'NÃO'}`);
-             
-             // Verifica se algum elemento essencial não foi encontrado ou se não está logado
+             alert(`renderAlunos: Testando elementos... list=${list ? 'OK' : 'FALHOU'}, filters=${filters ? 'OK' : 'FALHOU'}, loggedIn=${window.appState.isLoggedIn ? 'OK' : 'FALHOU'}`);
+
              if(!list || !filters || !window.appState.isLoggedIn) { 
-                 alert("renderAlunos: Saindo cedo devido a !list, !filters ou !isLoggedIn."); // Alert se sair aqui
+                 alert("renderAlunos: Saindo cedo!");
                  // Tenta exibir erro mesmo se sair cedo
-                 if (list) list.innerHTML = '<p style="color: red;">Erro: renderAlunos saiu cedo!</p>';
+                 if (list) list.innerHTML = '<p style="color: red; font-size: 16px; padding: 20px;">ERRO: renderAlunos saiu cedo!</p>';
                  return; 
              }
              
-             // Se chegou aqui, os elementos foram encontrados e está logado. Tenta renderizar...
-             alert("renderAlunos: Elementos OK, continuando para renderização...");
+             alert("renderAlunos: Elementos OK. Tentando definir innerHTML SIMPLES...");
              
-             // Calcula contagens
              const totalCount = (window.appState.alunosData || []).length;
              const filteredCount = (window.appState.filteredAlunos || []).length; // Usa a lista já filtrada se existir
 
-             // Exibe APENAS a caixa de debug
              try {
-                list.innerHTML = `<div style="padding: 15px; background: lightgoldenrodyellow; color: black; margin-bottom: 10px; border: 1px solid goldenrod; border-radius: 8px; font-size: 14px;">
-                                    <strong>Debug Alunos (Simplificado):</strong><br>
-                                    Total Dados Recebidos=${totalCount}<br> 
-                                    (Contagem filtrada anterior=${filteredCount})<br>
-                                    Filtro Turma='${window.appState.currentFilter}'<br>
-                                    Busca='${window.appState.searchQuery}'<br>
-                                    Timestamp: ${new Date().toLocaleTimeString()}
-                                  </div>`;
-                alert("renderAlunos: innerHTML da caixa de debug foi definido. Verifique a tela.");
+                // *** INNERHTML SUPER SIMPLES ***
+                list.innerHTML = `<p style="color: green; font-size: 18px; padding: 20px; border: 2px solid green;">
+                                    renderAlunos EXECUTADO! Total Dados=${totalCount} (${new Date().toLocaleTimeString()})
+                                  </p>`;
+                alert("renderAlunos: innerHTML SIMPLES foi definido. Verifique a tela AGORA.");
              } catch (e) {
-                alert(`ERRO CRÍTICO ao tentar definir innerHTML em renderAlunos: ${e.message}`);
-                // Tenta exibir o erro na tela de qualquer maneira
-                if(list) list.innerHTML = `<p style="color: red;">ERRO JS: ${e.message}</p>`;
+                alert(`ERRO CRÍTICO no innerHTML (renderAlunos): ${e.message}`);
+                if(list) list.innerHTML = `<p style="color: red; font-size: 16px; padding: 20px;">ERRO JS (Alunos): ${e.message}</p>`;
              }
         }
 
-        // --- Renderização Turmas (COM ALERTS DE VERIFICAÇÃO DE ELEMENTOS) ---
+        // --- Renderização Turmas (TESTE FINAL ULTRA SIMPLIFICADO) ---
         window.renderTurmas = () => { 
-            alert("Função renderTurmas FOI CHAMADA.");
-
-            console.log("renderTurmas chamado.");
+            alert("Função renderTurmas CHAMADA.");
             const list = document.getElementById('turmasList'); 
             
-            // *** ADICIONADO ALERTS DE VERIFICAÇÃO ***
-            alert(`renderTurmas: Elemento #turmasList encontrado? ${list ? 'SIM' : 'NÃO'}`);
-            alert(`renderTurmas: Utilizador está logado? ${window.appState.isLoggedIn ? 'SIM' : 'NÃO'}`);
+            alert(`renderTurmas: Testando elementos... list=${list ? 'OK' : 'FALHOU'}, loggedIn=${window.appState.isLoggedIn ? 'OK' : 'FALHOU'}`);
              
-            // Verifica se algum elemento essencial não foi encontrado ou se não está logado
             if(!list || !window.appState.isLoggedIn) { 
-                 alert("renderTurmas: Saindo cedo devido a !list ou !isLoggedIn."); // Alert se sair aqui
-                 if (list) list.innerHTML = '<p style="color: red;">Erro: renderTurmas saiu cedo!</p>';
+                 alert("renderTurmas: Saindo cedo!");
+                 if(list) list.innerHTML = '<p style="color: red; font-size: 16px; padding: 20px;">ERRO: renderTurmas saiu cedo!</p>';
                  return; 
              }
 
-            // Se chegou aqui, os elementos foram encontrados e está logado. Tenta renderizar...
-            alert("renderTurmas: Elementos OK, continuando para renderização...");
+            alert("renderTurmas: Elementos OK. Tentando definir innerHTML SIMPLES...");
 
-            // Calcula contagens
             const totalCount = (window.appState.turmasData || []).length;
              const filteredCount = (window.appState.filteredTurmas || []).length; // Usa a lista já filtrada se existir
 
-            // Exibe APENAS a caixa de debug
             try {
-                 list.innerHTML = `<div style="padding: 15px; background: lightblue; color: black; margin-bottom: 10px; border: 1px solid blue; border-radius: 8px; font-size: 14px;">
-                                    <strong>Debug Turmas (Simplificado):</strong><br>
-                                    Total Dados Recebidos=${totalCount}<br>
-                                    (Contagem filtrada anterior=${filteredCount})<br>
-                                    Busca='${window.appState.searchQuery}'<br>
-                                    Timestamp: ${new Date().toLocaleTimeString()}
-                                   </div>`;
-                alert("renderTurmas: innerHTML da caixa de debug foi definido. Verifique a tela.");
+                 // *** INNERHTML SUPER SIMPLES ***
+                 list.innerHTML = `<p style="color: blue; font-size: 18px; padding: 20px; border: 2px solid blue;">
+                                     renderTurmas EXECUTADO! Total Dados=${totalCount} (${new Date().toLocaleTimeString()})
+                                   </p>`;
+                alert("renderTurmas: innerHTML SIMPLES foi definido. Verifique a tela AGORA.");
             } catch (e) {
-                alert(`ERRO CRÍTICO ao tentar definir innerHTML em renderTurmas: ${e.message}`);
-                if(list) list.innerHTML = `<p style="color: red;">ERRO JS: ${e.message}</p>`;
+                alert(`ERRO CRÍTICO no innerHTML (renderTurmas): ${e.message}`);
+                if(list) list.innerHTML = `<p style="color: red; font-size: 16px; padding: 20px;">ERRO JS (Turmas): ${e.message}</p>`;
             }
         }
 
@@ -946,7 +950,6 @@
                     const currentTurmaValue = document.getElementById('alunoTurma')?.value;
                     populateTurmaSelect('alunoTurma', currentTurmaValue); 
                     
-                    // *** ADICIONADO ALERT ***
                     alert(`Turmas recebidas: ${snapshot.docs.length}. Chamando render...`); 
 
                     if (window.appState.currentTab === 'turmas') window.renderTurmas(); 
@@ -960,7 +963,6 @@
                     console.log("Recebidos dados de ALUNOS:", snapshot.docs.length);
                     window.appState.alunosData = snapshot.docs.map(d => ({ id: d.id, ...d.data() })); 
                     
-                    // *** ADICIONADO ALERT ***
                     alert(`Alunos recebidos: ${snapshot.docs.length}. Chamando render...`); 
 
                     if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
