@@ -1011,7 +1011,7 @@
         }
 
 
-        // --- Renderização Turmas (ATUALIZADO) ---
+                // --- Renderização Turmas (ATUALIZADO COM DEBUG DE TELA) ---
         window.renderTurmas = () => { 
             console.log("renderTurmas chamado.");
             const list = document.getElementById('turmasList'); 
@@ -1032,25 +1032,39 @@
             const alunosGlobais = window.appState.alunosData || []; 
             const showAdminButtonsRender = window.appState.isAdmin && window.appState.viewAsAdmin; 
             
-            list.innerHTML = window.appState.filteredTurmas.map(t => { 
-                const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); 
-                const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; 
-                
-                const editButtonHtml = showAdminButtonsRender 
-                    ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` 
-                    : '';
-                
-                const avatar = `<div class="avatar-placeholder" style="background:var(--color-border);color:var(--color-active-link); border-radius:var(--avatar-border-radius);"><span class="material-icons-outlined">school</span></div>`;
+            // *** MUDANÇA AQUI: Adicionado try...catch ***
+            try {
+                list.innerHTML = window.appState.filteredTurmas.map(t => { 
+                    const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); 
+                    const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; 
                     
-                return `<div class="card" style="cursor:pointer;" onclick="window.showTurmaDetail('${t.id}')">
-                            ${avatar}
-                            <div class="card-info">
-                                <div class="card-title">${escapeHTML(t.nome)}</div>
-                                <div class="card-subtitle">${escapeHTML(t.serie||'N/D')} • ${aM} aluno(s)</div>
-                            </div>
-                            ${editButtonHtml}
-                            <span class="material-icons-outlined card-chevron">chevron_right</span>
-                        </div>`; 
+                    const editButtonHtml = showAdminButtonsRender 
+                        ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${t.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` 
+                        : '';
+                    
+                    const avatar = `<div class="avatar-placeholder" style="background:var(--color-border);color:var(--color-active-link); border-radius:var(--avatar-border-radius);"><span class="material-icons-outlined">school</span></div>`;
+                        
+                    return `<div class="card" style="cursor:pointer;" onclick="window.showTurmaDetail('${t.id}')">
+                                ${avatar}
+                                <div class="card-info">
+                                    <div class="card-title">${escapeHTML(t.nome)}</div>
+                                    <div class="card-subtitle">${escapeHTML(t.serie||'N/D')} • ${aM} aluno(s)</div>
+                                </div>
+                                ${editButtonHtml}
+                                <span class="material-icons-outlined card-chevron">chevron_right</span>
+                            </div>`; 
+                }).join('');
+            } catch (error) {
+                console.error("Erro renderTurmas map:", error); 
+                // *** MUDANÇA AQUI ***
+                list.innerHTML = `<div class='empty-state' style='text-align: left; padding: 15px;'>
+                                    <h3 style='color:red;'>Erro ao Renderizar Turmas!</h3>
+                                    <p style='color:var(--color-text);'>Por favor, reporte este erro:</p>
+                                    <pre style='background: var(--color-border); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; font-size: 12px; color: red; margin-top: 10px;'>${escapeHTML(error.message)}\n\n${escapeHTML(error.stack)}</pre>
+                                 </div>`;
+            }
+        }
+
              }).join(''); 
         }
 
