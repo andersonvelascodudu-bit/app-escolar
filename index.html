@@ -12,14 +12,18 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 
     <style>
-        /* O seu CSS completo do V2 (AppSheet visual) vai aqui */
+        /* Variáveis CSS */
         :root {
             --bg-body: #f5f5f5; --bg-card: white; --color-text: #333; --color-secondary: #666;
             --color-border: #e0e0e0; --color-input-bg: #f5f5f5; --color-chip-bg: white;
             --color-chip-border: #ddd; --color-active-link: #004d40; --color-warning: #f57c00;
             --color-warning-bg: #fff3e0; --color-danger-bg: #ffebee; --color-secondary-btn-bg: #f0f0f0;
             --color-secondary-btn-text: #666; --color-selection-border: #607D8B; --color-selected-border: #004d40;
-            --avatar-border-radius: 50%; --header-height: auto; --bottom-nav-height: 60px;
+            
+            /* ===== MODIFICAÇÃO 1: Quadrado Arredondado ===== */
+            --avatar-border-radius: 8px; /* Era 50% */
+            
+            --header-height: auto; --bottom-nav-height: 60px;
         }
         .dark-mode {
             --bg-body: #121212; --bg-card: #1e1e1e; --color-text: #e0e0e0; --color-secondary: #b0b0b0;
@@ -28,6 +32,7 @@
             --color-warning-bg: #4c3e00; --color-danger-bg: #4a1c1c; --color-secondary-btn-bg: #2d2d2d;
             --color-secondary-btn-text: #b0b0b0; --color-selection-border: #78909C; --color-selected-border: #80cbc4;
         }
+        /* Estilos Globais */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; 
@@ -36,6 +41,7 @@
             padding-bottom: var(--bottom-nav-height);
             transition: background 0.3s, color 0.3s; 
         }
+        /* ... (O resto do CSS é idêntico) ... */
         .header {
             background: var(--bg-card);
             color: var(--color-text);
@@ -131,7 +137,7 @@
         }
         .avatar, .avatar-placeholder {
             width: 45px; height: 45px;
-            border-radius: var(--avatar-border-radius);
+            border-radius: var(--avatar-border-radius); /* <-- USA A VARIÁVEL CORRIGIDA */
             object-fit: cover; background: var(--color-border); display: flex;
             align-items: center; justify-content: center; font-weight: 600;
             font-size: 10px; text-align: center; line-height: 1.2;
@@ -286,7 +292,7 @@
         .modal-nav .btn { flex: 1; padding: 10px; font-size: 14px; }
         @media (max-width: 480px) { .header-actions { gap: 5px; } .header-btn { width: 35px; height: 35px; } .header-btn .material-icons-outlined { font-size: 18px; } .search-box { display: none; } }
         @media (max-width: 360px) { .header h1 { font-size: 18px; } }
-        /* Ecrã de Login (NOVO) */
+        /* Ecrã de Login */
         #loginScreen { 
             position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
             background: var(--bg-body); 
@@ -346,15 +352,16 @@
             <input type="text" class="search-box" id="searchBox" placeholder="Buscar...">
             
             <div class="header-actions">
-                <button class="header-btn" id="backupBtn" onclick="window.showBackupOptions()" title="Backup">
+                <button class="header-btn" id="backupBtn" onclick="window.showBackupOptions()" title="Backup" style="display: none;">
                     <span class="material-icons-outlined">backup</span>
                 </button>
-                <button class="header-btn" id="importBtn" onclick="window.showImportModal()" title="Importar">
+                <button class="header-btn" id="importBtn" onclick="window.showImportModal()" title="Importar" style="display: none;">
                     <span class="material-icons-outlined">file_upload</span>
                 </button>
-                <button class="header-btn" id="selectBtn" onclick="window.toggleSelectionMode()" style="background-color: #607D8B; border-color: #607D8B;" title="Selecionar">
+                <button class="header-btn" id="selectBtn" onclick="window.toggleSelectionMode()" title="Selecionar" style="display: none;">
                     <span class="material-icons-outlined">select_all</span>
                 </button>
+                
                 <button class="header-btn" id="logoutBtn" onclick="window.handleLogout()" title="Sair">
                     <span class="material-icons-outlined">logout</span>
                 </button>
@@ -374,7 +381,7 @@
             </div>
         </div>
 
-        <button class="fab" id="fabBtn" onclick="window.openAddModal()" title="Adicionar">
+        <button class="fab" id="fabBtn" onclick="window.openAddModal()" title="Adicionar" style="display: none;">
             <span class="material-icons-outlined">add</span>
         </button>
         <button class="fab" id="deleteSelectedBtn" onclick="window.deleteSelectedAlunos()" style="display:none;">
@@ -404,12 +411,10 @@
             </div>
         </div>
 
-    </div> 
-    <script type="module">
+    </div> <script type="module">
         console.log("Script principal iniciado.");
 
-        // Imports Firebase (Autenticação e Firestore)
-        // ===== CORREÇÃO: Removido o 's' extra de 'httpshttps://' =====
+        // Imports Firebase (Corrigidos)
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         
         import { 
@@ -428,7 +433,6 @@
 
         // =================================================================
         // *** 1. PREENCHA AQUI: Cole a sua configuração do Firebase ***
-        // (Verifique se copiou o bloco correto do seu painel)
         // =================================================================
         const firebaseConfig = {
              apiKey: "AIzaSyBT1gu4-FghvGiJUqqyFjTG5ADAt3_VUDU",
@@ -443,7 +447,6 @@
         // Init Firebase & Serviços
         let app, db, auth;
         try {
-            // Verificação do placeholder
             if (firebaseConfig.apiKey.startsWith("AIzaSy...")) {
                  throw new Error("Configuração do Firebase não preenchida (ainda com placeholder).");
             }
@@ -466,10 +469,22 @@
 
         // Estado Global
         window.appState = {
-            isAdmin: false,
+            isAdmin: false, // Controlado pelo login
             currentTab: 'alunos', currentFilter: 'Todos', 
             editingAlunoId: null, editingTurmaId: null, turmasData: [], alunosData: [], 
             searchQuery: '', 
+            
+            // =================================================================
+            // *** 2. PREENCHA AQUI: Lista de emails que são ADMINS ***
+            // (Utilizadores normais não precisam de estar nesta lista)
+            // =================================================================
+            adminEmails: [
+                'admin@nata.com',
+                'seu.email.admin@gmail.com'
+                // Ex: 'andersonvelascodudu@gmail.com'
+            ],
+            // =================================================================
+
             userEmail: null, isLoggedIn: false, 
             filteredAlunos: [], currentAlunoIndex: -1, filteredTurmas: [], currentTurmaIndex: -1,
             isSelectionModeActive: false, selectedAlunoIds: [] 
@@ -549,8 +564,11 @@
              try { 
                 if (user) { 
                     window.appState.isLoggedIn = true; 
-                    window.appState.isAdmin = true; // Só admins podem logar
                     window.appState.userEmail = user.email;
+                    
+                    // ===== MODIFICAÇÃO 2: Define se é Admin ou User =====
+                    window.appState.isAdmin = window.appState.adminEmails.includes(user.email);
+                    console.log("Utilizador logado. É Admin?", window.appState.isAdmin);
                     
                     if (loginScreen) loginScreen.style.display = 'none'; 
                     if (appContainer) appContainer.style.display = 'block'; 
@@ -558,11 +576,13 @@
                     if (!listenersIniciados) { 
                         iniciarListenersFirestore(); 
                         listenersIniciados = true;
-                    } else {
-                        updateAdminUI(); 
                     }
+                    // Sempre atualiza a UI para mostrar/esconder botões de admin
+                    updateAdminUI(); 
                     window.switchTab('alunos'); 
+                
                 } else { 
+                    // Se NÃO HÁ utilizador, volta ao ecrã de login
                     console.log("Utilizador deslogado.");
                     window.appState.isLoggedIn = false; 
                     window.appState.isAdmin = false; 
@@ -585,27 +605,39 @@
 
 
         // --- Funções Admin, FAB e Seleção Múltipla ---
+        // ===== MODIFICAÇÃO 3: UI reage ao 'isAdmin' =====
         function updateAdminUI() {
+             const isAdmin = window.appState.isAdmin;
              const isAlunosTab = window.appState.currentTab === 'alunos';
              const isSelectionMode = window.appState.isSelectionModeActive;
 
-             ['backupBtn', 'importBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'flex'; });
+             // Botões Admin (Backup/Import/Select)
+             ['backupBtn', 'importBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = isAdmin ? 'flex' : 'none'; });
              
-             const logoutButton = document.getElementById('logoutBtn'); 
-             if (logoutButton) { 
-                 logoutButton.style.display = 'flex';
-                 logoutButton.title = `Logado como: ${window.appState.userEmail}\nClique para Sair`;
+             const selectBtn = document.getElementById('selectBtn');
+             if (selectBtn) {
+                 selectBtn.style.display = (isAdmin && isAlunosTab) ? 'flex' : 'none';
+                 // Reseta o botão de seleção se sair do modo admin
+                 if (!isAdmin && isSelectionMode) {
+                     window.toggleSelectionMode(); // Cancela o modo de seleção
+                 }
              }
              
-             const selectBtn = document.getElementById('selectBtn'); 
-             if (selectBtn) selectBtn.style.display = isAlunosTab ? 'flex' : 'none';
+             // Botão Sair
+             const logoutButton = document.getElementById('logoutBtn'); 
+             if (logoutButton) { 
+                 logoutButton.style.display = 'flex'; // Sempre visível quando logado
+                 logoutButton.title = `Logado como: ${window.appState.userEmail}\n(${isAdmin ? 'Admin' : 'User'})\nClique para Sair`;
+             }
              
+             // FAB Adicionar
              const fabBtn = document.getElementById('fabBtn'); 
-             if (fabBtn) fabBtn.style.display = !isSelectionMode ? 'flex' : 'none';
+             if (fabBtn) fabBtn.style.display = (isAdmin && !isSelectionMode) ? 'flex' : 'none';
              
+             // FAB Excluir
              const deleteBtn = document.getElementById('deleteSelectedBtn'); 
              if (deleteBtn) { 
-                 if(isSelectionMode) updateDeleteButtonCount(); 
+                 if(isAdmin && isSelectionMode) updateDeleteButtonCount(); 
                  else deleteBtn.style.display = 'none'; 
              }
              
@@ -633,10 +665,16 @@
         }
         
         window.toggleAlunoSelection = (alunoId) => { 
+            // Só permite selecionar se for admin
+            if (!window.appState.isAdmin) {
+                window.showAlunoDetail(alunoId);
+                return;
+            }
             if (!window.appState.isSelectionModeActive) { 
                 window.showAlunoDetail(alunoId); 
                 return; 
             } 
+            
             const card = document.querySelector(`.card[data-aluno-id="${alunoId}"]`); 
             const index = window.appState.selectedAlunoIds.indexOf(alunoId);
             if (index > -1) { 
@@ -653,9 +691,10 @@
             if (!btn) return;
             const count = window.appState.selectedAlunoIds.length;
             btn.innerHTML = `<span class="material-icons-outlined">delete</span> Excluir (${count})`;
-            btn.style.display = (window.appState.isSelectionModeActive && count > 0) ? 'flex' : 'none';
+            btn.style.display = (window.appState.isAdmin && window.appState.isSelectionModeActive && count > 0) ? 'flex' : 'none';
         }
         window.deleteSelectedAlunos = async () => { 
+            if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error');
             const ids = window.appState.selectedAlunoIds; const count = ids.length; 
             if (!window.appState.isSelectionModeActive || count === 0) return; 
             if (confirm(`Excluir ${count} aluno(s) selecionado(s)? Esta ação não pode ser desfeita.`)) { 
@@ -669,6 +708,7 @@
             } 
         }
         window.openAddModal = () => { 
+            if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error');
             if (window.appState.isSelectionModeActive) return; 
             if (window.appState.currentTab === 'alunos') {
                  window.appState.editingAlunoId = null; const title = document.getElementById('alunoModalTitle'); if(title) title.textContent = 'Adicionar Aluno';
@@ -695,20 +735,21 @@
             });
         }
         window.removeCurrentPhotoURL = () => { 
+            if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error');
             const urlInput = document.getElementById('alunoFotoURL'); if(urlInput) urlInput.value=''; 
             const photoC = document.getElementById('currentPhotoContainer'); if(photoC) photoC.style.display='none'; 
         }
 
         // --- Backup e Importar ---
-        window.showBackupOptions = () => { window.openModal('backupModal'); }
+        window.showBackupOptions = () => { if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error'); window.openModal('backupModal'); }
         function escapeCSVCell(c){ if(c==null)return''; let s=String(c); if(s.includes(',')||s.includes('\n')||s.includes('"')){s=s.replace(/"/g,'""');return `"${s}"`;} return s;}
         function downloadCSV(csv, fname){ const bom='\uFEFF', blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8;'}), link=document.createElement("a"), url=URL.createObjectURL(blob); link.setAttribute("href",url); link.setAttribute("download",fname); link.style.visibility='hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); } 
-        window.exportAlunosCSV = () => { const d = window.appState.alunosData; if(d.length===0) return window.showToast('Sem alunos para exportar.', 'error'); const h=['nome','matricula','diario','turma','status','nascimento','cpf','telefone','responsavel1Nome','responsavel1Tipo','responsavel1Tel','responsavel2Nome','responsavel2Tipo','responsavel2Tel','pcd','provaDif','monitorias','projetos','obs1','dispensas','notificacoes','advertencias','suspensoes','obs2','fotoURL']; let csv=h.join(',')+'\n'; d.forEach(a=>{csv+=h.map(hd=>escapeCSVCell(a[hd])).join(',')+'\n';}); downloadCSV(csv,'backup_alunos.csv'); window.showToast('Exportando Alunos...', 'success'); window.closeModal('backupModal'); }
-        window.exportTurmasCSV = () => { const d = window.appState.turmasData; if(d.length===0) return window.showToast('Sem turmas para exportar.', 'error'); const h=['nome','serie','obs']; let csv=h.join(',')+'\n'; d.forEach(t=>{csv+=h.map(hd=>escapeCSVCell(t[hd])).join(',')+'\n';}); downloadCSV(csv,'backup_turmas.csv'); window.showToast('Exportando Turmas...', 'success'); window.closeModal('backupModal'); }
-        window.showImportModal = () => { const fi=document.getElementById('csvFileInput'); if(fi)fi.value=''; const st=document.getElementById('importStatus'); if(st)st.textContent=''; window.openModal('importModal'); }
-        window.handleImport = () => { const fi=document.getElementById('csvFileInput'), it=document.getElementById('importType')?.value, st=document.getElementById('importStatus'); if (!fi || !it || !st) return; if(!fi.files || fi.files.length===0) return window.showToast('Selecione um arquivo CSV.','error'); const f=fi.files[0], r=new FileReader(); st.textContent='A ler arquivo...'; r.onload = async (e)=>{ const txt = e.target.result; try { const d = parseCSV(txt); if (d.length === 0) throw new Error("Nenhuma linha de dados encontrada."); st.textContent = `${d.length} linhas encontradas. A importar...`; await processImport(d,it); st.textContent = `Sucesso! ${d.length} registos importados.`; window.showToast(`Importado ${d.length} ${it}!`, 'success'); setTimeout(() => window.closeModal('importModal'), 1000); } catch (err) { console.error("Erro na importação:", err); st.textContent=`Erro: ${err.message}`; window.showToast(`Erro: ${err.message}`, 'error'); }}; r.onerror=()=>{st.textContent='Erro ao ler o arquivo.';window.showToast('Erro ao ler o arquivo.', 'error');}; r.readAsText(f); }
+        window.exportAlunosCSV = () => { if (!window.appState.isAdmin) return; const d = window.appState.alunosData; if(d.length===0) return window.showToast('Sem alunos para exportar.', 'error'); const h=['nome','matricula','diario','turma','status','nascimento','cpf','telefone','responsavel1Nome','responsavel1Tipo','responsavel1Tel','responsavel2Nome','responsavel2Tipo','responsavel2Tel','pcd','provaDif','monitorias','projetos','obs1','dispensas','notificacoes','advertencias','suspensoes','obs2','fotoURL']; let csv=h.join(',')+'\n'; d.forEach(a=>{csv+=h.map(hd=>escapeCSVCell(a[hd])).join(',')+'\n';}); downloadCSV(csv,'backup_alunos.csv'); window.showToast('Exportando Alunos...', 'success'); window.closeModal('backupModal'); }
+        window.exportTurmasCSV = () => { if (!window.appState.isAdmin) return; const d = window.appState.turmasData; if(d.length===0) return window.showToast('Sem turmas para exportar.', 'error'); const h=['nome','serie','obs']; let csv=h.join(',')+'\n'; d.forEach(t=>{csv+=h.map(hd=>escapeCSVCell(t[hd])).join(',')+'\n';}); downloadCSV(csv,'backup_turmas.csv'); window.showToast('Exportando Turmas...', 'success'); window.closeModal('backupModal'); }
+        window.showImportModal = () => { if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error'); const fi=document.getElementById('csvFileInput'); if(fi)fi.value=''; const st=document.getElementById('importStatus'); if(st)st.textContent=''; window.openModal('importModal'); }
+        window.handleImport = () => { if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error'); const fi=document.getElementById('csvFileInput'), it=document.getElementById('importType')?.value, st=document.getElementById('importStatus'); if (!fi || !it || !st) return; if(!fi.files || fi.files.length===0) return window.showToast('Selecione um arquivo CSV.','error'); const f=fi.files[0], r=new FileReader(); st.textContent='A ler arquivo...'; r.onload = async (e)=>{ const txt = e.target.result; try { const d = parseCSV(txt); if (d.length === 0) throw new Error("Nenhuma linha de dados encontrada."); st.textContent = `${d.length} linhas encontradas. A importar...`; await processImport(d,it); st.textContent = `Sucesso! ${d.length} registos importados.`; window.showToast(`Importado ${d.length} ${it}!`, 'success'); setTimeout(() => window.closeModal('importModal'), 1000); } catch (err) { console.error("Erro na importação:", err); st.textContent=`Erro: ${err.message}`; window.showToast(`Erro: ${err.message}`, 'error'); }}; r.onerror=()=>{st.textContent='Erro ao ler o arquivo.';window.showToast('Erro ao ler o arquivo.', 'error');}; r.readAsText(f); }
         function parseCSV(t){ const l=t.replace(/\r/g,'').split('\n').filter(Boolean); if(l.length < 1) throw new Error("CSV vazio ou inválido."); const h=l[0].split(',').map(x=>x.trim()); if(h.length===0||(h.length===1&&h[0]==='')) throw new Error("Header (cabeçalho) inválido."); const d=[]; for(let i=1;i<l.length;i++){ const v=l[i].split(','); if (v.length !== h.length) { console.warn(`Linha ${i+1} ignorada: número de colunas (${v.length}) diferente do header (${h.length}).`); continue; } let o={}; for(let j=0;j<h.length;j++){ const hdr=h[j]; if (!hdr) continue; let val=v[j]?v[j].trim():''; if (val.startsWith('"') && val.endsWith('"')) { val = val.substring(1, val.length - 1).replace(/""/g, '"'); } if(hdr==='pcd'||hdr==='provaDif') val=(val.toLowerCase()==='true'); o[hdr]=val; } d.push(o); } return d; }
-        async function processImport(data, type){ const coll=(type==='alunos')?'alunos':'turmas', batch=writeBatch(db); data.forEach(item=>{ Object.keys(item).forEach(k=>{if(item[k]===undefined || item[k]==='') delete item[k];}); if (type === 'alunos' && !item.nome) return; if (type === 'turmas' && !item.nome) return; const ref=doc(collection(db,coll)); batch.set(ref,item);}); try { await batch.commit(); } catch (e) { console.error("Erro no commit do batch:", e); throw new Error("Falha ao gravar no banco. Verifique os dados."); } }
+        async function processImport(data, type){ if (!window.appState.isAdmin) throw new Error('Sem permissão.'); const coll=(type==='alunos')?'alunos':'turmas', batch=writeBatch(db); data.forEach(item=>{ Object.keys(item).forEach(k=>{if(item[k]===undefined || item[k]==='') delete item[k];}); if (type === 'alunos' && !item.nome) return; if (type === 'turmas' && !item.nome) return; const ref=doc(collection(db,coll)); batch.set(ref,item);}); try { await batch.commit(); } catch (e) { console.error("Erro no commit do batch:", e); throw new Error("Falha ao gravar no banco. Verifique os dados."); } }
 
         // --- Navegação e Filtro ---
         window.switchTab = (tabName) => {
@@ -748,6 +789,7 @@
         // --- CRUD Alunos ---
         window.saveAluno = async (event) => { 
             event.preventDefault(); 
+            if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error');
             const form = event.target; if(!form) return; 
             const saveBtn = document.getElementById('saveAlunoBtn');
             if(saveBtn) saveBtn.disabled = true;
@@ -762,6 +804,7 @@
             finally { if(syncStatus) syncStatus.classList.remove('active'); if(saveBtn) saveBtn.disabled = false; } 
         }
         window.openEditAlunoModal = (alunoId) => { 
+            if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error');
             if (window.appState.isSelectionModeActive) return; 
             const aluno = window.appState.alunosData.find(a => a.id === alunoId); 
             if (!aluno) return window.showToast('Aluno não encontrado.', 'error'); 
@@ -777,6 +820,7 @@
             window.openModal('alunoModal'); 
         }
         window.deleteAluno = async () => { 
+            if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error');
             if (!window.appState.editingAlunoId) return; 
             if (confirm('Tem certeza que deseja excluir este aluno? Esta ação não pode ser desfeita.')) { 
                 const s = document.getElementById('syncStatus'); if(s)s.classList.add('active'); 
@@ -799,7 +843,9 @@
             else if (aluno.fotoURL) { av = `<img src="${escapeHTML(convertGoogleDriveLink(aluno.fotoURL))}" class="detail-avatar" alt="Foto" onerror="this.src=''; this.style.display='none'; this.nextElementSibling.style.display='block';"> <div class="avatar avatar-placeholder-semfoto" style="width:100px; height: 100px; border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: none;">Sem Foto</div>`;} 
             else { av = `<div class="avatar avatar-placeholder-semfoto" style="width:100px; height: 100px; border-radius: var(--avatar-border-radius); margin: 0 auto 15px;">Sem Foto</div>`; } 
             
-            const editButtonHtml = `<button class="btn btn-primary" onclick="window.closeModal('alunoDetailModal'); window.openEditAlunoModal('${aluno.id}')" style="margin-bottom:20px;">Editar</button>`;
+            // ===== MODIFICAÇÃO 3: Botão Editar só para Admins =====
+            const editButtonHtml = window.appState.isAdmin ? `<button class="btn btn-primary" onclick="window.closeModal('alunoDetailModal'); window.openEditAlunoModal('${aluno.id}')" style="margin-bottom:20px;">Editar</button>` : '';
+            
             const navHtml = `<div class="modal-nav"><button class="btn btn-secondary" onclick="window.showPrevAluno()" ${window.appState.currentAlunoIndex <= 0 ? 'disabled' : ''}>← Ant</button><button class="btn btn-secondary" onclick="window.showNextAluno()" ${window.appState.currentAlunoIndex >= window.appState.filteredAlunos.length - 1 ? 'disabled' : ''}>Próx →</button></div>`;
             
             const sDados = `${cDr('Nome',aluno.nome)}${cDr('Matrícula',aluno.matricula)}${cDr('Nº Diário',aluno.diario)}${cDr('Turma',aluno.turma)}${cDr('Status',aluno.status)}${cDr('Nasc.',`${formatDate(aluno.nascimento)} ${calculateAge(aluno.nascimento)}`)}${cDr('CPF',aluno.cpf)}${cDr('Tel Aluno',aluno.telefone)}`;
@@ -820,6 +866,7 @@
         // --- CRUD Turmas ---
         window.saveTurma = async (e) => { 
             e.preventDefault(); 
+            if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error');
             const form = e.target; if(!form) return; 
             const tData={nome:form.turmaNome.value.trim(), serie:form.turmaSerie.value.trim(), obs:form.turmaObs.value.trim()}; 
             Object.keys(tData).forEach(k=>{if(!tData[k])delete tData[k];}); 
@@ -832,6 +879,7 @@
             finally { if(s)s.classList.remove('active'); } 
         }
         window.openEditTurmaModal = (id) => { 
+            if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error');
             const t = window.appState.turmasData.find(x => x.id === id); if (!t) return window.showToast('Turma não encontrada.', 'error'); 
             window.appState.editingTurmaId = id; 
             const title=document.getElementById('turmaModalTitle'); if(title) title.textContent = 'Editar Turma'; 
@@ -842,6 +890,7 @@
             window.openModal('turmaModal'); 
         }
         window.deleteTurma = async () => { 
+            if (!window.appState.isAdmin) return window.showToast('Sem permissão.', 'error');
             if (!window.appState.editingTurmaId) return; 
             if (confirm('Excluir esta turma? (Alunos desta turma NÃO serão excluídos, mas ficarão sem turma).')) { 
                 const s = document.getElementById('syncStatus'); if(s)s.classList.add('active'); 
@@ -875,7 +924,10 @@
             } 
             const body = document.getElementById('turmaDetailBody'); if(!body) return; 
             const cDr = (l, v) => { const valStr = String(v || '').trim(); if (valStr === '') return ''; const valCls = l.toLowerCase()==='obs' ? 'detail-text-area' : 'detail-value'; return `<div class="detail-row"><div class="detail-label">${escapeHTML(l)}</div><div class="${valCls}">${escapeHTML(valStr).replace(/\n/g, '<br>')}</div></div>`; };
-            const editButtonHtml = `<button class="btn btn-primary" onclick="window.closeModal('turmaDetailModal'); window.openEditTurmaModal('${turma.id}')" style="margin-bottom:20px;">Editar</button>`;
+            
+            // ===== MODIFICAÇÃO 3: Botão Editar só para Admins =====
+            const editButtonHtml = window.appState.isAdmin ? `<button class="btn btn-primary" onclick="window.closeModal('turmaDetailModal'); window.openEditTurmaModal('${turma.id}')" style="margin-bottom:20px;">Editar</button>` : '';
+            
             const navHtml = `<div class="modal-nav"><button class="btn btn-secondary" onclick="window.showPrevTurma()" ${window.appState.currentTurmaIndex <= 0 ? 'disabled' : ''}>← Ant</button><button class="btn btn-secondary" onclick="window.showNextTurma()" ${window.appState.currentTurmaIndex >= window.appState.filteredTurmas.length - 1 ? 'disabled' : ''}>Próx →</button></div>`;
             const sInfo = `${cDr('Nome',turma.nome)}${cDr('Série',turma.serie)}${cDr('Obs',turma.obs)}`;
             body.innerHTML = `${navHtml}${editButtonHtml}
@@ -922,10 +974,11 @@
                      } 
                      
                      const isSel = window.appState.selectedAlunoIds.includes(a.id); 
-                     const cardCls = `card ${window.appState.isSelectionModeActive ? 'selectable' : ''} ${isSel ? 'selected' : ''}`; 
-                     const clickH = window.appState.isSelectionModeActive ? `window.toggleAlunoSelection('${a.id}')` : `window.showAlunoDetail('${a.id}')`; 
+                     const cardCls = `card ${window.appState.isAdmin && window.appState.isSelectionModeActive ? 'selectable' : ''} ${isSel ? 'selected' : ''}`; 
+                     const clickH = (window.appState.isAdmin && window.appState.isSelectionModeActive) ? `window.toggleAlunoSelection('${a.id}')` : `window.showAlunoDetail('${a.id}')`; 
                      
-                     const editButtonHtml = !window.appState.isSelectionModeActive
+                     // ===== MODIFICAÇÃO 3: Botão Editar só para Admins =====
+                     const editButtonHtml = (window.appState.isAdmin && !window.appState.isSelectionModeActive) 
                         ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` 
                         : ''; 
                      
@@ -969,7 +1022,10 @@
                 const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); 
                 const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; 
                 
-                const editButtonHtml = `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>`;
+                // ===== MODIFICAÇÃO 3: Botão Editar só para Admins =====
+                const editButtonHtml = window.appState.isAdmin 
+                    ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` 
+                    : '';
                 
                 const avatar = `<div class="avatar-placeholder" style="background:var(--color-border);color:var(--color-active-link); border-radius:var(--avatar-border-radius);"><span class="material-icons-outlined">school</span></div>`;
                     
@@ -1006,6 +1062,12 @@
                          console.error("ERRO: O Firestore precisa de um índice para 'turmas'.");
                          console.error("**************************************************");
                     }
+                    if (e.code === 'permission-denied') {
+                         console.error("**************************************************");
+                         console.error("ERRO: 'permission-denied' ao LER turmas.");
+                         console.error("Verifique as suas REGRAS do Firestore.");
+                         console.error("**************************************************");
+                    }
                 });
             } catch (e) { console.error("Falha ao criar listener de TURMAS:", e); }
 
@@ -1023,6 +1085,12 @@
                     if (e.code === 'failed-precondition') {
                          console.error("**************************************************");
                          console.error("ERRO: O Firestore precisa de um índice para 'alunos'.");
+                         console.error("**************************************************");
+                    }
+                    if (e.code === 'permission-denied') {
+                         console.error("**************************************************");
+                         console.error("ERRO: 'permission-denied' ao LER alunos.");
+                         console.error("Verifique as suas REGRAS do Firestore.");
                          console.error("**************************************************");
                     }
                 });
