@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 
     <style>
-        /* Variáveis CSS */
+        /* Estilos CSS (idênticos aos anteriores, omitidos por brevidade) */
         :root {
             --bg-body: #f5f5f5; --bg-card: white; --color-text: #333; --color-secondary: #666;
             --color-border: #e0e0e0; --color-input-bg: #f5f5f5; --color-chip-bg: white;
@@ -28,19 +28,17 @@
             --color-warning-bg: #4c3e00; --color-danger-bg: #4a1c1c; --color-secondary-btn-bg: #2d2d2d;
             --color-secondary-btn-text: #b0b0b0; --color-selection-border: #78909C; --color-selected-border: #80cbc4;
         }
-        /* Estilos Globais */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; 
             background: var(--bg-body); 
             color: var(--color-text); 
-            padding-bottom: var(--bottom-nav-height); /* Espaço para a Nav Inferior */
+            padding-bottom: var(--bottom-nav-height);
             transition: background 0.3s, color 0.3s; 
         }
-        /* Header (Limpo) */
         .header {
-            background: var(--bg-card); /* Fundo sólido */
-            color: var(--color-text); /* Cor do texto padrão */
+            background: var(--bg-card);
+            color: var(--color-text);
             padding: 10px 15px;
             position: sticky;
             top: 0;
@@ -54,24 +52,19 @@
             font-size: 20px;
             font-weight: 600;
             color: var(--color-text);
-            margin-right: auto; /* Empurra botões para a direita */
+            margin-right: auto;
         }
-        .header-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
+        .header-actions { display: flex; gap: 8px; align-items: center; }
         .search-box {
             flex: 1 1 150px;
             padding: 10px 15px;
             border: none;
             border-radius: 25px;
             font-size: 14px;
-            background: var(--color-input-bg); /* Fundo sutil */
+            background: var(--color-input-bg);
             color: var(--color-text);
             min-width: 100px;
         }
-        /* Botões do Header (Redondos) */
         .header-btn {
             background: var(--color-secondary-btn-bg);
             border: 1px solid var(--color-chip-border);
@@ -84,23 +77,18 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 38px; /* Tamanho fixo */
+            width: 38px;
             height: 38px;
-            border-radius: 50%; /* Redondos */
+            border-radius: 50%;
             padding: 0;
         }
-        .header-btn .material-icons-outlined {
-            font-size: 20px;
-        }
-        .header-btn:hover {
-            background: var(--color-border);
-        }
+        .header-btn .material-icons-outlined { font-size: 20px; }
+        .header-btn:hover { background: var(--color-border); }
         .header-btn.active {
             background: var(--color-active-link);
             border-color: var(--color-active-link);
             color: white;
         }
-        /* Botão "Cancelar" expandido */
         .header-btn#selectBtn.active {
             width: auto;
             padding: 0 15px;
@@ -112,18 +100,12 @@
             font-size: 18px;
             margin-right: 4px;
         }
-        
-        /* Content */
         #contentContainer { padding-top: 0; display: none; }
         .content { padding: 15px; }
-        
-        /* Filtros */
         .filter-chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 15px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .filter-chips::-webkit-scrollbar { display: none; }
         .chip { padding: 8px 16px; background: var(--color-chip-bg); border: 1px solid var(--color-chip-border); border-radius: 20px; font-size: 13px; cursor: pointer; white-space: nowrap; transition: all 0.3s; color: var(--color-secondary); }
         .chip.active { background: var(--color-active-link); color: white; border-color: var(--color-active-link); }
-
-        /* --- Refinamento dos Cards (Estilo AppSheet) --- */
         .card {
             background: var(--bg-card);
             border-radius: 12px;
@@ -140,8 +122,6 @@
         }
         .dark-mode .card { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
         .card:not(.selectable):active { transform: scale(0.98); }
-        
-        /* Seleção Múltipla */
         .card.selectable { cursor: pointer; border-color: var(--color-selection-border); }
         .card.selected { border-color: var(--color-selected-border); background: var(--color-warning-bg); }
         .card.selected::before {
@@ -149,10 +129,9 @@
             color: white; border-radius: 12px 0 12px 0; width: 22px; height: 22px;
             display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; z-index: 1;
         }
-        
         .avatar, .avatar-placeholder {
-            width: 45px; height: 45px; /* Ligeiramente menor */
-            border-radius: var(--avatar-border-radius); /* Redondo */
+            width: 45px; height: 45px;
+            border-radius: var(--avatar-border-radius);
             object-fit: cover; background: var(--color-border); display: flex;
             align-items: center; justify-content: center; font-weight: 600;
             font-size: 10px; text-align: center; line-height: 1.2;
@@ -165,7 +144,6 @@
         .avatar-placeholder .material-icons-outlined { font-size: 24px; }
         .avatar-placeholder-semfoto { background: #333; color: white; }
         .avatar-placeholder-transferido { background: var(--color-warning); color: white; font-weight: bold; }
-        
         .card-info { flex: 1; min-width: 0; }
         .card-title {
             font-weight: 600; font-size: 15px; margin-bottom: 2px;
@@ -175,8 +153,6 @@
             color: var(--color-secondary); font-size: 12px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        
-        /* Botão de Edição (Ícone) */
         .card-edit-btn {
             background: none; border: none; color: var(--color-secondary);
             cursor: pointer; padding: 5px; border-radius: 50%;
@@ -185,16 +161,12 @@
         }
         .card-edit-btn:hover { background: var(--color-border); color: var(--color-text); }
         .card-edit-btn .material-icons-outlined { font-size: 20px; }
-
-        /* Chevron (Seta) */
         .card-chevron {
             color: var(--color-border);
             font-size: 24px;
             flex-shrink: 0;
         }
         .card:hover .card-chevron { color: var(--color-secondary); }
-        
-        /* --- Barra de Navegação Inferior --- */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -221,17 +193,15 @@
         .nav-item.active {
             color: var(--color-active-link);
         }
-
-        /* --- Ajustes de Posição (FAB, Toast) --- */
         .fab {
             position: fixed;
-            bottom: calc(var(--bottom-nav-height) + 20px); /* Sobe o FAB */
+            bottom: calc(var(--bottom-nav-height) + 20px);
             right: 20px;
-            width: 56px; /* Padrão redondo */
+            width: 56px;
             min-width: 56px;
             height: 56px;
             border-radius: 28px;
-            padding: 0; /* Remove padding de texto */
+            padding: 0;
             background: linear-gradient(135deg, #2196F3 0%, var(--color-active-link) 100%);
             color: white; border: none; font-size: 16px; font-weight: 600;
             box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
@@ -240,24 +210,20 @@
         }
         .fab .material-icons-outlined { font-size: 24px; }
         .fab:active { transform: scale(0.95); }
-        
-        /* Botão Excluir (expande) */
         #deleteSelectedBtn {
             background: #f44336;
             box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
-            width: auto; /* Permite expandir */
+            width: auto;
             padding: 0 20px;
         }
         #deleteSelectedBtn .material-icons-outlined {
             font-size: 20px;
             margin-right: 8px;
         }
-        
-        /* Sync Status */
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .sync-status {
             position: fixed;
-            bottom: calc(var(--bottom-nav-height) + 15px); /* Acima da Nav */
+            bottom: calc(var(--bottom-nav-height) + 15px);
             left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 8px 15px;
             border-radius: 25px; font-size: 12px; display: none;
@@ -268,11 +234,9 @@
             font-size: 16px;
             animation: spin 1.5s linear infinite;
         }
-        
-        /* Toast */
         #toastContainer {
             position: fixed;
-            bottom: calc(var(--bottom-nav-height) + 10px); /* Acima da Nav */
+            bottom: calc(var(--bottom-nav-height) + 10px);
             left: 50%; transform: translateX(-50%);
             z-index: 2000; display: flex; flex-direction: column-reverse;
             align-items: center; gap: 8px; width: 90%; max-width: 400px;
@@ -280,8 +244,6 @@
         .toast { padding: 10px 15px; border-radius: 8px; color: white; font-size: 13px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: translateY(10px); width: 100%; text-align: center; }
         .toast-success { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); }
         .toast-error { background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); }
-
-        /* --- Modais, Forms, Detalhes (Sem grandes mudanças) --- */
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .modal.active { display: flex; align-items: flex-start; justify-content: center; padding: 20px; }
         .modal-content { background: var(--bg-card); border-radius: 16px; width: 100%; max-width: 500px; margin: auto; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s; }
@@ -310,13 +272,11 @@
         .detail-value { flex: 1; font-weight: 500; font-size: 14px; color: var(--color-text); white-space: pre-wrap; word-break: break-word; }
         .detail-text-area { padding: 8px; background: var(--color-input-bg); border-radius: 6px; font-size: 13px; white-space: pre-wrap; min-height: 40px; border: 1px solid var(--color-border); margin-top: 5px; }
         .detail-avatar { width: 100px; height: 100px; border-radius: var(--avatar-border-radius); object-fit: cover; margin: 0 auto 15px; display: block; border: 3px solid var(--color-border); }
-        /* Lista de alunos na view da Turma */
         .turma-aluno-list .card { padding: 10px; margin-bottom: 8px; cursor: pointer; }
         .turma-aluno-list .avatar, .turma-aluno-list .avatar-placeholder { width: 35px; height: 35px; font-size: 9px; }
         .turma-aluno-list .avatar-placeholder { font-size: 14px; }
         .turma-aluno-list .card-title { font-size: 14px; margin-bottom: 2px; }
         .turma-aluno-list .card-subtitle { font-size: 11px; }
-        /* Estados Vazios e Loading */
         .empty-state { text-align: center; padding: 40px 20px; color: var(--color-secondary); }
         .empty-state .material-icons-outlined { font-size: 60px; margin-bottom: 15px; opacity: 0.3; }
         .empty-state h3 { font-size: 16px; margin-bottom: 5px; }
@@ -324,20 +284,19 @@
         .loading { text-align: center; padding: 40px; color: var(--color-secondary); }
         .modal-nav { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
         .modal-nav .btn { flex: 1; padding: 10px; font-size: 14px; }
-        /* Media Queries */
-        @media (max-width: 480px) { .header-actions { gap: 5px; } .header-btn { width: 35px; height: 35px; } .header-btn .material-icons-outlined { font-size: 18px; } .search-box { display: none; } /* Esconde search no header em telas micro */ }
+        @media (max-width: 480px) { .header-actions { gap: 5px; } .header-btn { width: 35px; height: 35px; } .header-btn .material-icons-outlined { font-size: 18px; } .search-box { display: none; } }
         @media (max-width: 360px) { .header h1 { font-size: 18px; } }
-        /* Tela de Login */
         #loginScreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
         #loginScreen h2 { margin-bottom: 30px; }
         #loginScreen p { margin-bottom: 20px; }
         #loginScreen button { margin-top: 10px; }
         #loginScreen #authError { margin-top: 15px; min-height: 1.2em; }
-        /* Preview de Foto no Form */
         #currentPhotoContainer img { max-width: 80px; max-height: 80px; border-radius: var(--avatar-border-radius); object-fit: cover; border: 1px solid var(--color-border); margin-bottom: 10px; }
     </style>
 </head>
-<body class="dark-mode"> <div id="loginScreen">
+<body class="dark-mode">
+
+    <div id="loginScreen">
         <h2 style="color: var(--color-text);">Sistema Escolar NATA</h2>
         <p id="loginMessage" style="color: var(--color-secondary);">A verificar autenticação...</p>
         <button id="loginButton" class="btn btn-primary" style="display: none; max-width: 250px;">Entrar com Google</button>
@@ -415,11 +374,21 @@
     </div> <script type="module">
         console.log("Script principal iniciado.");
 
-        // Imports Firebase
-        // ===== MUDANÇA 1: Importa 'signInWithRedirect' e 'getRedirectResult' =====
-        import { initializeApp } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, onSnapshot, updateDoc, deleteDoc, doc, addDoc, setDoc, enableIndexedDbPersistence, query, orderBy, writeBatch } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        // Imports Firebase (Autenticação e Firestore)
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        
+        // ===== MUDANÇA 1: Importa 'initializeFirestore' e 'persistentLocalCache' =====
+        // remove 'getFirestore' e 'enableIndexedDbPersistence'
+        import { 
+            initializeFirestore, persistentLocalCache, collection, onSnapshot, 
+            updateDoc, deleteDoc, doc, addDoc, setDoc, query, orderBy, writeBatch 
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Imports de Autenticação (já corrigidos para 'signInWithRedirect')
+        import { 
+            getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, 
+            signOut, onAuthStateChanged 
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
         console.log("Módulos Firebase importados.");
 
@@ -443,10 +412,15 @@
                  throw new Error("Configuração do Firebase não preenchida.");
             }
             app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
+            
+            // ===== MUDANÇA 2: Inicializa o Firestore com persistência (método novo) =====
+            db = initializeFirestore(app, {
+                cache: persistentLocalCache(/* { tabManager: 'primary' } */)
+            });
+
             auth = getAuth(app); 
             provider = new GoogleAuthProvider(); 
-            console.log("Firebase inicializado com sucesso.");
+            console.log("Firebase inicializado com persistência (método novo).");
         } catch (error) {
              console.error("ERRO GRAVE: Falha ao inicializar o Firebase.", error.message);
              document.getElementById('loginMessage').textContent = "Erro de Configuração";
@@ -484,9 +458,9 @@
         };
 
         // --- Persistência Offline ---
-        enableIndexedDbPersistence(db)
-            .then(() => console.log("Persistência offline do Firestore ativada."))
-            .catch((err) => console.warn("Erro ao ativar persistência offline:", err.code));
+        // ===== MUDANÇA 3: Remove o bloco 'enableIndexedDbPersistence(db)' =====
+        // (Isto agora é feito acima, durante a inicialização)
+        
 
         // --- Funções Utilitárias ---
         window.openModal = (id) => { const el = document.getElementById(id); if(el) { el.classList.add('active'); document.body.style.overflow = 'hidden'; } }
@@ -519,7 +493,7 @@
         function calculateAge(d) { try { if (!d) return ''; const b = new Date(d+'T03:00:00Z'), t = new Date(); let a = t.getFullYear() - b.getFullYear(); const m = t.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && t.getDate() < b.getDate())) a--; return a >= 0 ? `(${a}a)`: ''; } catch (e) { return ''; } }
         function convertGoogleDriveLink(url) { if (!url) return ''; let id = null; const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|view\?id=)([a-zA-Z0-9_-]+)/); if (m && m[1]) id = m[1]; return id ? `https.drive.google.com/thumbnail?id=${id}&sz=w300` : url; }
 
-        // --- Lógica de Autenticação ---
+        // --- Lógica de Autenticação (Já corrigida para Redirect) ---
         const loginScreen = document.getElementById('loginScreen');
         const loginButton = document.getElementById('loginButton');
         const loginMessage = document.getElementById('loginMessage');
@@ -528,27 +502,19 @@
         const appContainer = document.getElementById('appContainer'); 
         const toggleViewBtn = document.getElementById('toggleViewBtn'); 
 
-        // ===== MUDANÇA 2: Adiciona o "apanhador" de redirect =====
-        // "Apanha" o login quando o utilizador volta do Google
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
-                    // O utilizador acabou de fazer login e foi redirecionado
                     console.log("Login via redirect apanhado!", result.user);
-                    // Não é preciso fazer mais nada, o 'onAuthStateChanged' abaixo
-                    // será acionado automaticamente e tratará de tudo.
                 }
             })
             .catch((error) => {
-                // Lida com erros do redirect
                 console.error("Erro ao apanhar getRedirectResult:", error);
                 if (authError) authError.textContent = `Erro no login (${error.code}).`;
             });
 
-        // ===== MUDANÇA 3: A função 'signIn' agora usa 'signInWithRedirect' =====
         const signIn = () => { 
             if (authError) authError.textContent = '';
-            // MUDA AQUI: de signInWithPopup para signInWithRedirect
             signInWithRedirect(auth, provider)
                 .catch((error) => {
                     console.error("Erro ao iniciar Redirect de Login:", error.code, error.message);
@@ -594,7 +560,6 @@
                         } else {
                             updateAdminUI(); 
                         }
-                        // Define o tab 'alunos' como padrão no login
                         window.switchTab('alunos'); 
                     } else {
                         console.warn("Utilizador NÃO autorizado:", user.email);
@@ -624,6 +589,7 @@
 
 
         // --- Funções Admin, FAB e Seleção Múltipla ---
+        // (Nenhuma mudança aqui, todo o código abaixo é idêntico ao anterior)
         function updateAdminUI() {
              console.log("updateAdminUI chamado. ViewAsAdmin:", window.appState.viewAsAdmin); 
              try { 
@@ -634,21 +600,18 @@
                  const isAlunosTab = window.appState.currentTab === 'alunos';
                  const isSelectionMode = window.appState.isSelectionModeActive;
                  
-                 // Botão Logout/Status
                  const logoutButton = document.getElementById('logoutBtn'); 
                  if (logoutButton) { 
-                     logoutButton.style.display = 'flex'; // 'flex' por ser um .header-btn
+                     logoutButton.style.display = 'flex';
                      logoutButton.title = `Logado como: ${window.appState.userEmail} (${isTrueAdmin ? 'Admin' : 'User'})\nClique para Sair`;
                      logoutButton.classList.toggle('active', isTrueAdmin && window.appState.viewAsAdmin);
                  }
-                 // Botão Mudar Vista
                  const toggleBtn = document.getElementById('toggleViewBtn');
                  if (toggleBtn) { 
                      toggleBtn.style.display = isTrueAdmin ? 'flex' : 'none'; 
                      toggleBtn.innerHTML = window.appState.viewAsAdmin ? '<span class="material-icons-outlined">visibility_off</span>' : '<span class="material-icons-outlined">visibility</span>';
                      toggleBtn.title = window.appState.viewAsAdmin ? 'Ver como Utilizador' : 'Ver como Admin';
                  }
-                 // Outros botões Admin
                  ['backupBtn', 'importBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = showAdminFeatures ? 'flex' : 'none'; });
                  
                  const selectBtn = document.getElementById('selectBtn'); 
@@ -663,7 +626,6 @@
                      else deleteBtn.style.display = 'none'; 
                  }
                  
-                 // Re-renderiza a lista atual para aplicar/remover botões "Editar"
                  if (isAlunosTab) window.renderAlunos(); 
                  else window.renderTurmas();
 
@@ -677,7 +639,7 @@
              if(!selBtn) return;
              if (window.appState.isSelectionModeActive) {
                  selBtn.innerHTML = '<span class="material-icons-outlined">cancel</span> Cancelar';
-                 selBtn.classList.add('active'); // Usa classe para CSS
+                 selBtn.classList.add('active');
                  selBtn.style.backgroundColor = '#f44336'; selBtn.style.borderColor = '#f44336';
                  window.appState.selectedAlunoIds = []; 
              } else {
@@ -686,7 +648,7 @@
                  selBtn.style.backgroundColor = '#607D8B'; selBtn.style.borderColor = '#607D8B';
                  window.appState.selectedAlunoIds = [];
              }
-             updateAdminUI(); // Atualiza visibilidade dos FABs e re-renderiza lista
+             updateAdminUI();
         }
         
         window.toggleAlunoSelection = (alunoId) => { 
@@ -770,34 +732,23 @@
         // --- Navegação e Filtro ---
         window.switchTab = (tabName) => {
             if (!window.appState.isLoggedIn) return; 
-            
-            // Cancela modo seleção se trocar de aba
             if (window.appState.viewAsAdmin && window.appState.isSelectionModeActive && window.appState.currentTab !== tabName) {
                 window.toggleSelectionMode(); 
             }
-            
             window.appState.currentTab = tabName;
-
-            // Atualiza a bottom-nav
             document.querySelectorAll('.bottom-nav .nav-item').forEach(el => el.classList.remove('active'));
             const activeNavItem = document.querySelector(`.bottom-nav .nav-item[data-tab="${tabName}"]`);
             if (activeNavItem) activeNavItem.classList.add('active');
-            
             const isAlunos = tabName === 'alunos';
             const alunosEl = document.getElementById('alunosContent'); 
             if(alunosEl) alunosEl.style.display = isAlunos ? 'block' : 'none';
             const turmasEl = document.getElementById('turmasContent'); 
             if(turmasEl) turmasEl.style.display = isAlunos ? 'none' : 'block';
-            
-            // Atualiza título do Header
             const headerTitle = document.querySelector('#mainHeader h1');
             if (headerTitle) headerTitle.textContent = isAlunos ? 'Alunos' : 'Turmas';
-            
-            // Atualiza placeholder da busca
             const searchBox = document.getElementById('searchBox'); 
             if(searchBox) searchBox.placeholder = isAlunos ? 'Buscar aluno...' : 'Buscar turma...';
-            
-            updateAdminUI(); // Atualiza visibilidade dos botões admin/select/fab
+            updateAdminUI();
         }
         
         window.setFilter = (turmaNome) => { 
@@ -1075,7 +1026,6 @@
                 }, (e) => { 
                     console.error("Erro no listener de TURMAS:", e); 
                     window.showToast('Erro ao carregar Turmas.', 'error'); 
-                    // Tenta exibir erro de índice do Firestore no console
                     if (e.code === 'failed-precondition') {
                          console.error("**************************************************");
                          console.error("ERRO: O Firestore precisa de um índice para esta consulta.");
@@ -1118,7 +1068,7 @@
         // --- PWA: Registar o Service Worker ---
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./service-worker.js') // <-- Registra o service worker
+            navigator.serviceWorker.register('./service-worker.js')
               .then(reg => console.log('ServiceWorker registado:', reg.scope))
               .catch(err => console.error('Registo ServiceWorker falhou:', err));
           });
