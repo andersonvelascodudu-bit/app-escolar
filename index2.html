@@ -416,9 +416,10 @@
         console.log("Script principal iniciado.");
 
         // Imports Firebase
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, onSnapshot, updateDoc, deleteDoc, doc, addDoc, setDoc, enableIndexedDbPersistence, query, orderBy, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        // ===== MUDANÇA 1: Importa 'signInWithRedirect' e 'getRedirectResult' =====
+        import { initializeApp } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, onSnapshot, updateDoc, deleteDoc, doc, addDoc, setDoc, enableIndexedDbPersistence, query, orderBy, writeBatch } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
         console.log("Módulos Firebase importados.");
 
@@ -516,7 +517,7 @@
         function escapeHTML(str) { if (typeof str !== 'string') return String(str || ''); const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }; return str.replace(/[&<>"']/g, (m) => map[m]); }
         function formatDate(d) { try { return d ? new Date(d + 'T03:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric'}) : 'N/D'; } catch (e) { console.warn("Data inválida:", d); return 'Inválido'; } }
         function calculateAge(d) { try { if (!d) return ''; const b = new Date(d+'T03:00:00Z'), t = new Date(); let a = t.getFullYear() - b.getFullYear(); const m = t.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && t.getDate() < b.getDate())) a--; return a >= 0 ? `(${a}a)`: ''; } catch (e) { return ''; } }
-        function convertGoogleDriveLink(url) { if (!url) return ''; let id = null; const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|view\?id=)([a-zA-Z0-9_-]+)/); if (m && m[1]) id = m[1]; return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w300` : url; }
+        function convertGoogleDriveLink(url) { if (!url) return ''; let id = null; const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|view\?id=)([a-zA-Z0-9_-]+)/); if (m && m[1]) id = m[1]; return id ? `https.drive.google.com/thumbnail?id=${id}&sz=w300` : url; }
 
         // --- Lógica de Autenticação ---
         const loginScreen = document.getElementById('loginScreen');
@@ -527,11 +528,30 @@
         const appContainer = document.getElementById('appContainer'); 
         const toggleViewBtn = document.getElementById('toggleViewBtn'); 
 
+        // ===== MUDANÇA 2: Adiciona o "apanhador" de redirect =====
+        // "Apanha" o login quando o utilizador volta do Google
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    // O utilizador acabou de fazer login e foi redirecionado
+                    console.log("Login via redirect apanhado!", result.user);
+                    // Não é preciso fazer mais nada, o 'onAuthStateChanged' abaixo
+                    // será acionado automaticamente e tratará de tudo.
+                }
+            })
+            .catch((error) => {
+                // Lida com erros do redirect
+                console.error("Erro ao apanhar getRedirectResult:", error);
+                if (authError) authError.textContent = `Erro no login (${error.code}).`;
+            });
+
+        // ===== MUDANÇA 3: A função 'signIn' agora usa 'signInWithRedirect' =====
         const signIn = () => { 
             if (authError) authError.textContent = '';
-            signInWithPopup(auth, provider)
+            // MUDA AQUI: de signInWithPopup para signInWithRedirect
+            signInWithRedirect(auth, provider)
                 .catch((error) => {
-                    console.error("Erro no Popup de Login:", error.code, error.message);
+                    console.error("Erro ao iniciar Redirect de Login:", error.code, error.message);
                     if (authError) authError.textContent = `Erro (${error.code}). Tente novamente.`;
                 });
         };
