@@ -404,45 +404,48 @@
             </div>
         </div>
 
-    </div> <script type="module">
+    </div> 
+    <script type="module">
         console.log("Script principal iniciado.");
 
         // Imports Firebase (Autenticação e Firestore)
-        import { initializeApp } from 'www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        // ===== CORREÇÃO: Removido o 's' extra de 'httpshttps://' =====
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         
         import { 
             initializeFirestore, persistentLocalCache, collection, onSnapshot, 
             updateDoc, deleteDoc, doc, addDoc, setDoc, query, orderBy, writeBatch 
-        } from 'www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
-        // ===== MUDANÇA 1: Importa 'signInWithEmailAndPassword' =====
         import { 
             getAuth, 
-            signInWithEmailAndPassword, // <-- NOVO
+            signInWithEmailAndPassword,
             signOut, 
             onAuthStateChanged 
-        } from 'www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
         console.log("Módulos Firebase importados.");
 
         // =================================================================
         // *** 1. PREENCHA AQUI: Cole a sua configuração do Firebase ***
+        // (Verifique se copiou o bloco correto do seu painel)
         // =================================================================
         const firebaseConfig = {
-             apiKey: "AIzaSyBT1gu4-FghvGiJUqqyFjTG5ADAt3_VUDU",
-             authDomain: "nata-b913d.firebaseapp.com",
-             projectId: "nata-b913d",
-             storageBucket: "nata-b913d.firebasestorage.app",
-             messagingSenderId: "349396363879",
-             appId: "1:349396363879:web:1adc27c5f1a2af6c02c2c2"
+             apiKey: "...", // (SEU CÓDIGO AQUI)
+             authDomain: "...",
+             projectId: "...",
+             storageBucket: "...",
+             messagingSenderId: "...",
+             appId: "..."
         };
         // =================================================================
         
         // Init Firebase & Serviços
         let app, db, auth;
         try {
+            // Verificação do placeholder
             if (firebaseConfig.apiKey.startsWith("AIzaSy...")) {
-                 throw new Error("Configuração do Firebase não preenchida.");
+                 throw new Error("Configuração do Firebase não preenchida (ainda com placeholder).");
             }
             app = initializeApp(firebaseConfig);
             
@@ -459,14 +462,11 @@
             if(authErrorEl) {
                 authErrorEl.textContent = `ERRO DE INICIALIZAÇÃO: ${error.message}`;
             }
-            // Não dá 'throw' para não causar tela em branco
         }
 
         // Estado Global
-        // Removidas as listas de 'authorizedUserEmails' e 'adminEmails',
-        // pois agora a segurança é feita pela conta de admin
         window.appState = {
-            isAdmin: false, // Controlado pelo login
+            isAdmin: false,
             currentTab: 'alunos', currentFilter: 'Todos', 
             editingAlunoId: null, editingTurmaId: null, turmasData: [], alunosData: [], 
             searchQuery: '', 
@@ -504,7 +504,7 @@
         function escapeHTML(str) { if (typeof str !== 'string') return String(str || ''); const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }; return str.replace(/[&<>"']/g, (m) => map[m]); }
         function formatDate(d) { try { return d ? new Date(d + 'T03:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric'}) : 'N/D'; } catch (e) { console.warn("Data inválida:", d); return 'Inválido'; } }
         function calculateAge(d) { try { if (!d) return ''; const b = new Date(d+'T03:00:00Z'), t = new Date(); let a = t.getFullYear() - b.getFullYear(); const m = t.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && t.getDate() < b.getDate())) a--; return a >= 0 ? `(${a}a)`: ''; } catch (e) { return ''; } }
-        function convertGoogleDriveLink(url) { if (!url) return ''; let id = null; const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|view\?id=)([a-zA-Z0-9_-]+)/); if (m && m[1]) id = m[1]; return id ? `https.drive.google.com/thumbnail?id=${id}&sz=w300` : url; }
+        function convertGoogleDriveLink(url) { if (!url) return ''; let id = null; const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|view\?id=)([a-zA-Z0-9_-]+)/); if (m && m[1]) id = m[1]; return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w300` : url; }
 
         // --- Lógica de Autenticação (E-mail/Senha) ---
         const loginScreen = document.getElementById('loginScreen');
@@ -512,7 +512,6 @@
         const authError = document.getElementById('authError');
         const appContainer = document.getElementById('appContainer'); 
 
-        // ===== MUDANÇA 2: Nova função de Login =====
         window.handleLogin = async (event) => {
             event.preventDefault();
             if (authError) authError.textContent = '';
@@ -534,7 +533,6 @@
             }
         };
 
-        // ===== MUDANÇA 3: Nova função de Logout =====
         window.handleLogout = () => { 
             signOut(auth).catch((error) => {
                 console.error("Erro ao Sair:", error);
@@ -546,12 +544,10 @@
         let unsubscribeAlunos = null; 
         let unsubscribeTurmas = null; 
 
-        // ===== MUDANÇA 4: onAuthStateChanged simplificado =====
         onAuthStateChanged(auth, (user) => { 
              console.log("onAuthStateChanged:", user ? user.email : 'Nenhum utilizador'); 
              try { 
                 if (user) { 
-                    // Se HÁ um utilizador, ele é admin.
                     window.appState.isLoggedIn = true; 
                     window.appState.isAdmin = true; // Só admins podem logar
                     window.appState.userEmail = user.email;
@@ -567,7 +563,6 @@
                     }
                     window.switchTab('alunos'); 
                 } else { 
-                    // Se NÃO HÁ utilizador, volta ao ecrã de login
                     console.log("Utilizador deslogado.");
                     window.appState.isLoggedIn = false; 
                     window.appState.isAdmin = false; 
@@ -580,7 +575,6 @@
                     if (loginScreen) loginScreen.style.display = 'flex'; 
                     if (appContainer) appContainer.style.display = 'none';
                     
-                    // Limpa o formulário
                     const emailInput = document.getElementById('loginEmail');
                     const passInput = document.getElementById('loginPassword');
                     if(emailInput) emailInput.value = '';
@@ -591,30 +585,24 @@
 
 
         // --- Funções Admin, FAB e Seleção Múltipla ---
-        // (Simplificado, pois 'isAdmin' é sempre 'true' quando logado)
         function updateAdminUI() {
              const isAlunosTab = window.appState.currentTab === 'alunos';
              const isSelectionMode = window.appState.isSelectionModeActive;
 
-             // Botões Admin (Backup/Import) estão sempre visíveis
              ['backupBtn', 'importBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'flex'; });
              
-             // Botão Sair
              const logoutButton = document.getElementById('logoutBtn'); 
              if (logoutButton) { 
                  logoutButton.style.display = 'flex';
                  logoutButton.title = `Logado como: ${window.appState.userEmail}\nClique para Sair`;
              }
              
-             // Botão Selecionar
              const selectBtn = document.getElementById('selectBtn'); 
              if (selectBtn) selectBtn.style.display = isAlunosTab ? 'flex' : 'none';
              
-             // FAB Adicionar
              const fabBtn = document.getElementById('fabBtn'); 
              if (fabBtn) fabBtn.style.display = !isSelectionMode ? 'flex' : 'none';
              
-             // FAB Excluir
              const deleteBtn = document.getElementById('deleteSelectedBtn'); 
              if (deleteBtn) { 
                  if(isSelectionMode) updateDeleteButtonCount(); 
@@ -626,7 +614,6 @@
         }
         
         window.toggleSelectionMode = () => {
-             // (Função idêntica à anterior)
              if (!window.appState.isAdmin || window.appState.currentTab !== 'alunos') return; 
              window.appState.isSelectionModeActive = !window.appState.isSelectionModeActive;
              const selBtn = document.getElementById('selectBtn'); 
@@ -644,13 +631,6 @@
              }
              updateAdminUI();
         }
-        
-        // (Todas as outras funções - toggleAlunoSelection, updateDeleteButtonCount,
-        // deleteSelectedAlunos, openAddModal, populateTurmaSelect, removeCurrentPhotoURL,
-        // Backup, Importar, Navegação, CRUD, Renderização - são IDÊNTICAS
-        // às do ficheiro V2, pois assumem que o admin já está logado.)
-
-        // --- (Copiar todo o resto do JS do V2 a partir daqui) ---
         
         window.toggleAlunoSelection = (alunoId) => { 
             if (!window.appState.isSelectionModeActive) { 
