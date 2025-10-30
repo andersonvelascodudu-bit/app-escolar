@@ -20,7 +20,7 @@
             --color-warning-bg: #fff3e0; --color-danger-bg: #ffebee; --color-secondary-btn-bg: #f0f0f0;
             --color-secondary-btn-text: #666; --color-selection-border: #607D8B; --color-selected-border: #004d40;
             
-            /* ===== MODIFICAÇÃO 1: Quadrado Arredondado ===== */
+            /* ===== MODIFICAÇÃO 1: Quadrado Arredondado (JÁ FEITO) ===== */
             --avatar-border-radius: 8px; /* Era 50% */
             
             --header-height: auto; --bottom-nav-height: 60px;
@@ -41,7 +41,6 @@
             padding-bottom: var(--bottom-nav-height);
             transition: background 0.3s, color 0.3s; 
         }
-        /* ... (O resto do CSS é idêntico) ... */
         .header {
             background: var(--bg-card);
             color: var(--color-text);
@@ -106,7 +105,7 @@
             font-size: 18px;
             margin-right: 4px;
         }
-        #contentContainer { padding-top: 0; display: none; } /* Começa escondido */
+        #contentContainer { padding-top: 0; display: none; } /* Começa escondido, JS mostra */
         .content { padding: 15px; }
         .filter-chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 15px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .filter-chips::-webkit-scrollbar { display: none; }
@@ -411,7 +410,8 @@
             </div>
         </div>
 
-    </div> <script type="module">
+    </div>
+    <script type="module">
         console.log("Script principal iniciado.");
 
         // Imports Firebase (Corrigidos)
@@ -479,9 +479,8 @@
             // (Utilizadores normais não precisam de estar nesta lista)
             // =================================================================
             adminEmails: [
-                'admin@nata.br',
-                'seu.email.admin@gmail.com'
-                // Ex: 'andersonvelascodudu@gmail.com'
+                'admin@nata.br', // <-- E-mail do Admin
+                'seu.email.admin@gmail.com' // <-- Outro e-mail de Admin
             ],
             // =================================================================
 
@@ -526,6 +525,7 @@
         const loginButton = document.getElementById('loginButton');
         const authError = document.getElementById('authError');
         const appContainer = document.getElementById('appContainer'); 
+        const contentContainer = document.getElementById('contentContainer'); // <-- O DIV DO BUG
 
         window.handleLogin = async (event) => {
             event.preventDefault();
@@ -573,6 +573,9 @@
                     if (loginScreen) loginScreen.style.display = 'none'; 
                     if (appContainer) appContainer.style.display = 'block'; 
                     
+                    // ===== BUG FIX: Mostra o contentContainer =====
+                    if (contentContainer) contentContainer.style.display = 'block';
+                    
                     if (!listenersIniciados) { 
                         iniciarListenersFirestore(); 
                         listenersIniciados = true;
@@ -595,6 +598,9 @@
                     if (loginScreen) loginScreen.style.display = 'flex'; 
                     if (appContainer) appContainer.style.display = 'none';
                     
+                    // ===== BUG FIX: Esconde o contentContainer =====
+                    if (contentContainer) contentContainer.style.display = 'none';
+                    
                     const emailInput = document.getElementById('loginEmail');
                     const passInput = document.getElementById('loginPassword');
                     if(emailInput) emailInput.value = '';
@@ -605,7 +611,7 @@
 
 
         // --- Funções Admin, FAB e Seleção Múltipla ---
-        // ===== MODIFICAÇÃO 3: UI reage ao 'isAdmin' =====
+        // ===== MODIFICAÇÃO 3: UI reage ao 'isAdmin' (baseado no e-mail) =====
         function updateAdminUI() {
              const isAdmin = window.appState.isAdmin;
              const isAlunosTab = window.appState.currentTab === 'alunos';
@@ -703,7 +709,14 @@
                     const batch = writeBatch(db); ids.forEach(id => batch.delete(doc(db, 'alunos', id))); 
                     await batch.commit(); window.showToast(`${count} aluno(s) excluído(s).`, 'success'); 
                     window.toggleSelectionMode(); 
-                } catch (e) { console.error("Erro ao excluir seleção:", e); window.showToast('Erro ao excluir seleção.', 'error'); } 
+                } catch (e) { 
+                    console.error("Erro ao excluir seleção:", e); 
+                    if(e.code === 'permission-denied') {
+                        window.showToast('Erro: Sem permissão para excluir (Verifique as Regras).', 'error');
+                    } else {
+                        window.showToast('Erro ao excluir seleção.', 'error'); 
+                    }
+                } 
                 finally { if(sync) sync.classList.remove('active'); } 
             } 
         }
@@ -800,7 +813,14 @@
                 if (window.appState.editingAlunoId) { await setDoc(doc(db, 'alunos', window.appState.editingAlunoId), alunoData, { merge: true }); window.showToast('Aluno atualizado!', 'success'); } 
                 else { await addDoc(collection(db, 'alunos'), alunoData); window.showToast('Aluno adicionado!', 'success'); } 
                 window.closeModal('alunoModal'); 
-            } catch (error) { console.error("Erro ao salvar Aluno:", error); window.showToast('Erro ao salvar aluno.', 'error'); } 
+            } catch (error) { 
+                console.error("Erro ao salvar Aluno:", error); 
+                if(error.code === 'permission-denied') {
+                    window.showToast('Erro: Sem permissão para salvar (Apenas Admins).', 'error');
+                } else {
+                    window.showToast('Erro ao salvar aluno.', 'error');
+                }
+            } 
             finally { if(syncStatus) syncStatus.classList.remove('active'); if(saveBtn) saveBtn.disabled = false; } 
         }
         window.openEditAlunoModal = (alunoId) => { 
@@ -825,7 +845,14 @@
             if (confirm('Tem certeza que deseja excluir este aluno? Esta ação não pode ser desfeita.')) { 
                 const s = document.getElementById('syncStatus'); if(s)s.classList.add('active'); 
                 try { await deleteDoc(doc(db, 'alunos', window.appState.editingAlunoId)); window.showToast('Aluno excluído.', 'success'); window.closeModal('alunoModal'); } 
-                catch (e) { console.error("Erro ao excluir Aluno:", e); window.showToast('Erro ao excluir aluno.', 'error'); } 
+                catch (e) { 
+                    console.error("Erro ao excluir Aluno:", e); 
+                    if(e.code === 'permission-denied') {
+                        window.showToast('Erro: Sem permissão para excluir (Apenas Admins).', 'error');
+                    } else {
+                        window.showToast('Erro ao excluir aluno.', 'error'); 
+                    }
+                } 
                 finally { if(s)s.classList.remove('active'); } 
             } 
         }
@@ -875,7 +902,14 @@
                 if (window.appState.editingTurmaId) { await setDoc(doc(db, 'turmas', window.appState.editingTurmaId), tData, { merge: true }); window.showToast('Turma atualizada.', 'success'); } 
                 else { await addDoc(collection(db, 'turmas'), tData); window.showToast('Turma adicionada.', 'success'); } 
                 window.closeModal('turmaModal'); 
-            } catch (err) { console.error("Erro ao salvar Turma:", err); window.showToast('Erro ao salvar turma.', 'error'); } 
+            } catch (err) { 
+                console.error("Erro ao salvar Turma:", err); 
+                if(err.code === 'permission-denied') {
+                    window.showToast('Erro: Sem permissão para salvar (Apenas Admins).', 'error');
+                } else {
+                    window.showToast('Erro ao salvar turma.', 'error'); 
+                }
+            } 
             finally { if(s)s.classList.remove('active'); } 
         }
         window.openEditTurmaModal = (id) => { 
@@ -895,7 +929,14 @@
             if (confirm('Excluir esta turma? (Alunos desta turma NÃO serão excluídos, mas ficarão sem turma).')) { 
                 const s = document.getElementById('syncStatus'); if(s)s.classList.add('active'); 
                 try { await deleteDoc(doc(db, 'turmas', window.appState.editingTurmaId)); window.showToast('Turma excluída.', 'success'); window.closeModal('turmaModal'); } 
-                catch (err) { console.error("Erro ao excluir Turma:", err); window.showToast('Erro ao excluir turma.', 'error'); } 
+                catch (err) { 
+                    console.error("Erro ao excluir Turma:", err); 
+                    if(err.code === 'permission-denied') {
+                        window.showToast('Erro: Sem permissão para excluir (Apenas Admins).', 'error');
+                    } else {
+                        window.showToast('Erro ao excluir turma.', 'error'); 
+                    }
+                } 
                 finally { if(s)s.classList.remove('active'); } 
             } 
         }
@@ -957,7 +998,13 @@
              });
              
              if (window.appState.filteredAlunos.length === 0) { 
-                 list.innerHTML = `<div class="empty-state"><span class="material-icons-outlined">people_outline</span><h3>Nenhum Aluno</h3><p>Verifique os filtros ou adicione novos alunos.</p></div>`; 
+                 // Se os dados já carregaram (têm 175) mas o filtro deu 0, mostra "Nenhum aluno encontrado"
+                 if (window.appState.alunosData.length > 0) {
+                    list.innerHTML = `<div class="empty-state"><span class="material-icons-outlined">people_outline</span><h3>Nenhum Aluno</h3><p>Verifique os filtros ou adicione novos alunos.</p></div>`; 
+                 } else {
+                    // Mantém o "A carregar..." se os dados ainda não chegaram
+                    list.innerHTML = `<div class="loading">A carregar alunos...</div>`;
+                 }
                  return; 
              }
              
@@ -1012,7 +1059,11 @@
             }); 
             
             if (window.appState.filteredTurmas.length === 0) { 
-                list.innerHTML = `<div class="empty-state"><span class="material-icons-outlined">class</span><h3>Nenhuma Turma</h3><p>Adicione novas turmas no modo Admin.</p></div>`; 
+                if (window.appState.turmasData.length > 0) {
+                    list.innerHTML = `<div class="empty-state"><span class="material-icons-outlined">class</span><h3>Nenhuma Turma</h3><p>Adicione novas turmas no modo Admin.</p></div>`; 
+                } else {
+                    list.innerHTML = `<div class="loading">A carregar turmas...</div>`;
+                }
                 return; 
             } 
             
@@ -1058,15 +1109,12 @@
                     console.error("Erro no listener de TURMAS:", e); 
                     window.showToast('Erro ao carregar Turmas.', 'error'); 
                     if (e.code === 'failed-precondition') {
-                         console.error("**************************************************");
                          console.error("ERRO: O Firestore precisa de um índice para 'turmas'.");
-                         console.error("**************************************************");
+                         alert("ERRO DE ÍNDICE: O Firestore precisa de um índice para 'turmas'. Crie-o no painel do Firebase.");
                     }
                     if (e.code === 'permission-denied') {
-                         console.error("**************************************************");
                          console.error("ERRO: 'permission-denied' ao LER turmas.");
-                         console.error("Verifique as suas REGRAS do Firestore.");
-                         console.error("**************************************************");
+                         alert("Erro de Permissão ao ler turmas. Verifique as Regras do Firestore.");
                     }
                 });
             } catch (e) { console.error("Falha ao criar listener de TURMAS:", e); }
@@ -1083,15 +1131,12 @@
                     console.error("Erro no listener de ALUNOS:", e); 
                     window.showToast('Erro ao carregar Alunos.', 'error'); 
                     if (e.code === 'failed-precondition') {
-                         console.error("**************************************************");
                          console.error("ERRO: O Firestore precisa de um índice para 'alunos'.");
-                         console.error("**************************************************");
+                         alert("ERRO DE ÍNDICE: O Firestore precisa de um índice para 'alunos'. Crie-o no painel do Firebase.");
                     }
                     if (e.code === 'permission-denied') {
-                         console.error("**************************************************");
                          console.error("ERRO: 'permission-denied' ao LER alunos.");
-                         console.error("Verifique as suas REGRAS do Firestore.");
-                         console.error("**************************************************");
+                         alert("Erro de Permissão ao ler alunos. Verifique as Regras do Firestore.");
                     }
                 });
             } catch (e) { console.error("Falha ao criar listener de ALUNOS:", e); }
