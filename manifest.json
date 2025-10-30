@@ -2,7 +2,7 @@
   "name": "Sistema Escolar NATA",
   "short_name": "NATA Escolar",
   "description": "Aplicação para gestão de alunos e turmas da NATA.",
-  "start_url": "./index2.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#004d40",
