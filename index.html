@@ -408,12 +408,12 @@
         console.log("Script principal iniciado.");
 
         // Imports Firebase (Autenticação e Firestore)
-        import { initializeApp } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { initializeApp } from 'www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         
         import { 
             initializeFirestore, persistentLocalCache, collection, onSnapshot, 
             updateDoc, deleteDoc, doc, addDoc, setDoc, query, orderBy, writeBatch 
-        } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        } from 'www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // ===== MUDANÇA 1: Importa 'signInWithEmailAndPassword' =====
         import { 
@@ -421,7 +421,7 @@
             signInWithEmailAndPassword, // <-- NOVO
             signOut, 
             onAuthStateChanged 
-        } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        } from 'www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
         console.log("Módulos Firebase importados.");
 
