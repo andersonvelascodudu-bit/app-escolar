@@ -1,6 +1,6 @@
-// service-worker.js (para a Versão Simples)
+// service-worker.js (para a Versão Segura com E-mail)
 
-const CACHE_NAME = 'nata-escolar-simples-v1'; 
+const CACHE_NAME = 'nata-escolar-seguro-v1'; 
 
 // URLs para guardar em cache. O MAIS IMPORTANTE é o index.html
 const urlsToCache = [
