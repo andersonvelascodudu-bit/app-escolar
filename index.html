@@ -333,7 +333,7 @@
             .header-actions { gap: 5px; } 
             .header-btn { width: 35px; height: 35px; } 
             .header-btn .material-icons-outlined { font-size: 18px; } 
-            /* .search-box { display: none; } /* Remova ou comente esta linha se quiser a busca em telas pequenas */
+            .search-box { display: none; } /* CAIXA DE BUSCA ESCONDIDA EM TELAS PEQUENAS */
         }
         @media (max-width: 360px) { .header h1 { font-size: 18px; } }
         /* Tela de Login */
@@ -584,11 +584,9 @@
                             listenersIniciados = true;
                         } else { updateAdminUI(); }
                         
-                        // *** ADICIONADO ALERT ANTES ***
-                        alert("onAuthStateChanged: Chamando switchTab('alunos')..."); 
+                        console.log("onAuthStateChanged: Chamando switchTab('alunos')..."); 
                         window.switchTab('alunos'); 
-                        // *** ADICIONADO ALERT DEPOIS ***
-                        alert("onAuthStateChanged: switchTab('alunos') foi chamado."); 
+                        console.log("onAuthStateChanged: switchTab('alunos') foi chamado."); 
 
                     } else {
                         console.warn("Utilizador NÃO autorizado:", user.email);
@@ -616,7 +614,7 @@
         });
 
         // --- Funções Admin, FAB e Seleção Múltipla ---
-        function updateAdminUI() { /* ... */ 
+        function updateAdminUI() { 
              console.log("updateAdminUI chamado. ViewAsAdmin:", window.appState.viewAsAdmin); 
              try { 
                  if (!window.appState.isLoggedIn) { return; }
@@ -643,8 +641,9 @@
                  if (fabBtn) fabBtn.style.display = (showAdminFeatures && !isSelectionMode) ? 'flex' : 'none';
                  const deleteBtn = document.getElementById('deleteSelectedBtn'); 
                  if (deleteBtn) { if(showAdminFeatures && isSelectionMode) updateDeleteButtonCount(); else deleteBtn.style.display = 'none'; }
-                 // *** CHAMADA MOVIDA PARA DENTRO DE switchTab PARA GARANTIR ORDEM ***
-                 // if (isAlunosTab) window.renderAlunos(); else window.renderTurmas();
+                 
+                 // Renderiza a aba correta
+                 if (isAlunosTab) window.renderAlunos(); else window.renderTurmas();
              } catch (e) { console.error("Erro em updateAdminUI:", e); }
         }
         window.toggleSelectionMode = () => { /* ... */ 
@@ -723,11 +722,11 @@
         function parseCSV(t){ /* ... */ const l=t.replace(/\r/g,'').split('\n').filter(Boolean); if(l.length < 1) throw new Error("CSV vazio ou inválido."); const h=l[0].split(',').map(x=>x.trim()); if(h.length===0||(h.length===1&&h[0]==='')) throw new Error("Header (cabeçalho) inválido."); const d=[]; for(let i=1;i<l.length;i++){ const v=l[i].split(','); if (v.length !== h.length) { console.warn(`Linha ${i+1} ignorada: número de colunas (${v.length}) diferente do header (${h.length}).`); continue; } let o={}; for(let j=0;j<h.length;j++){ const hdr=h[j]; if (!hdr) continue; let val=v[j]?v[j].trim():''; if (val.startsWith('"') && val.endsWith('"')) { val = val.substring(1, val.length - 1).replace(/""/g, '"'); } if(hdr==='pcd'||hdr==='provaDif') val=(val.toLowerCase()==='true'); o[hdr]=val; } d.push(o); } return d; }
         async function processImport(data, type){ /* ... */ if (!window.appState.viewAsAdmin) throw new Error("Sem permissão."); const coll=(type==='alunos')?'alunos':'turmas', batch=writeBatch(db); data.forEach(item=>{ Object.keys(item).forEach(k=>{if(item[k]===undefined || item[k]==='') delete item[k];}); if (type === 'alunos' && !item.nome) return; if (type === 'turmas' && !item.nome) return; const ref=doc(collection(db,coll)); batch.set(ref,item);}); try { await batch.commit(); } catch (e) { console.error("Erro no commit do batch:", e); throw new Error("Falha ao gravar no banco. Verifique os dados."); } }
 
-        // --- Navegação e Filtro (COM ALERTS DE DISPLAY) ---
+        // --- Navegação e Filtro (COM LOGS DE DISPLAY) ---
         window.switchTab = (tabName) => { 
-            alert(`switchTab: Iniciando para '${tabName}'...`);
+            console.log(`switchTab: Iniciando para '${tabName}'...`);
             if (!window.appState.isLoggedIn) {
-                alert("switchTab: Saindo (não logado).");
+                console.warn("switchTab: Saindo (não logado).");
                 return; 
             }
             if (window.appState.viewAsAdmin && window.appState.isSelectionModeActive && window.appState.currentTab !== tabName) { 
@@ -748,18 +747,18 @@
             if(alunosEl) alunosEl.style.display = isAlunos ? 'block' : 'none';
             if(turmasEl) turmasEl.style.display = isAlunos ? 'none' : 'block';
 
-            // *** VERIFICA O DISPLAY *DEPOIS* DE DEFINIR ***
+            // *** VERIFICA O DISPLAY *DEPOIS* DE DEFINIR (LOG NO CONSOLE) ***
             const alunosDisplay = alunosEl ? window.getComputedStyle(alunosEl).display : 'N/A';
             const turmasDisplay = turmasEl ? window.getComputedStyle(turmasEl).display : 'N/A';
-            alert(`switchTab: *Depois* de definir:\n#alunosContent display=${alunosDisplay}\n#turmasContent display=${turmasDisplay}`);
+            console.log(`switchTab: *Depois* de definir:\n#alunosContent display=${alunosDisplay}\n#turmasContent display=${turmasDisplay}`);
 
             const headerTitle = document.querySelector('#mainHeader h1'); if (headerTitle) headerTitle.textContent = isAlunos ? 'Alunos' : 'Turmas';
             const searchBox = document.getElementById('searchBox'); if(searchBox) searchBox.placeholder = isAlunos ? 'Buscar aluno...' : 'Buscar turma...';
             
-            alert("switchTab: Chamando updateAdminUI...");
+            console.log("switchTab: Chamando updateAdminUI...");
             // Chama updateAdminUI DEPOIS de definir o display
             updateAdminUI(); 
-            alert("switchTab: Finalizado.");
+            console.log("switchTab: Finalizado.");
         }
         window.setFilter = (turmaNome) => { /* ... */ 
             if (!window.appState.isLoggedIn) return; 
@@ -877,69 +876,90 @@
         }
 
        
-        // --- Renderização Alunos (TESTE FINAL ULTRA SIMPLIFICADO) ---
+        // --- Renderização Alunos (Versão Original Restaurada) ---
         window.renderAlunos = () => {
-             alert("Função renderAlunos CHAMADA."); 
-             const list = document.getElementById('alunosList');
-             const filters = document.getElementById('turmaFilters'); 
-             
-             alert(`renderAlunos: Testando elementos... list=${list ? 'OK' : 'FALHOU'}, filters=${filters ? 'OK' : 'FALHOU'}, loggedIn=${window.appState.isLoggedIn ? 'OK' : 'FALHOU'}`);
-
+             console.log("renderAlunos chamado."); 
+             const list = document.getElementById('alunosList'), filters = document.getElementById('turmaFilters'); 
              if(!list || !filters || !window.appState.isLoggedIn) { 
-                 alert("renderAlunos: Saindo cedo!");
-                 // Tenta exibir erro mesmo se sair cedo
-                 if (list) list.innerHTML = '<p style="color: red; font-size: 16px; padding: 20px;">ERRO: renderAlunos saiu cedo!</p>';
+                 console.warn("renderAlunos: Saindo cedo.");
                  return; 
              }
              
-             alert("renderAlunos: Elementos OK. Tentando definir innerHTML SIMPLES...");
+             let fHtml = `<div class="chip ${window.appState.currentFilter === 'Todos' ? 'active' : ''}" onclick="window.setFilter('Todos')">Todos</div>`;
+             (window.appState.turmasData || []).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).forEach(t => { fHtml += `<div class="chip ${window.appState.currentFilter === t.nome ? 'active' : ''}" onclick="window.setFilter('${escapeHTML(t.nome)}')">${escapeHTML(t.nome)}</div>`; });
+             filters.innerHTML = fHtml;
              
-             const totalCount = (window.appState.alunosData || []).length;
-             const filteredCount = (window.appState.filteredAlunos || []).length; // Usa a lista já filtrada se existir
-
-             try {
-                // *** INNERHTML SUPER SIMPLES ***
-                list.innerHTML = `<p style="color: green; font-size: 18px; padding: 20px; border: 2px solid green;">
-                                    renderAlunos EXECUTADO! Total Dados=${totalCount} (${new Date().toLocaleTimeString()})
-                                  </p>`;
-                alert("renderAlunos: innerHTML SIMPLES foi definido. Verifique a tela AGORA.");
-             } catch (e) {
-                alert(`ERRO CRÍTICO no innerHTML (renderAlunos): ${e.message}`);
-                if(list) list.innerHTML = `<p style="color: red; font-size: 16px; padding: 20px;">ERRO JS (Alunos): ${e.message}</p>`;
+             const q = window.appState.searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+             window.appState.filteredAlunos = (window.appState.alunosData || []).filter(a => { 
+                 const fm = (window.appState.currentFilter === 'Todos' || a.turma === window.appState.currentFilter); 
+                 if (!fm) return false; 
+                 if (q.length === 0) return true; 
+                 const sf = [a.nome, a.matricula, a.nascimento, a.cpf, a.responsavel1Nome, a.responsavel2Nome].map(val => String(val || '').toLowerCase()).join(' ').normalize("NFD").replace(/[\u0300-\u036f]/g,""); 
+                 return sf.includes(q); 
+             });
+             
+             const count = window.appState.filteredAlunos.length;
+             
+             if (count === 0) { 
+                 list.innerHTML = `<div class="empty-state"><span class="material-icons-outlined">people_outline</span><h3>Nenhum Aluno Encontrado</h3><p>Verifique os filtros ou adicione novos alunos.</p></div>`; 
+                 return; 
+             }
+             
+             const showAdminFeaturesRender = window.appState.isAdmin && window.appState.viewAsAdmin; 
+             try { 
+                 const itemsHtml = window.appState.filteredAlunos.map(a => { 
+                     let avatar = ''; if (a.status === 'Transferido') { avatar = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; } else if (a.fotoURL) { avatar = `<img src="${escapeHTML(convertGoogleDriveLink(a.fotoURL))}" class="avatar" alt="Foto" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="avatar avatar-placeholder-semfoto" style="display:none;">S/ Foto</div>`; } else { avatar = `<div class="avatar avatar-placeholder-semfoto">S/ Foto</div>`; } 
+                     const isSel = window.appState.selectedAlunoIds.includes(a.id); 
+                     const cardCls = `card ${showAdminFeaturesRender && window.appState.isSelectionModeActive ? 'selectable' : ''} ${isSel ? 'selected' : ''}`; 
+                     const clickH = (showAdminFeaturesRender && window.appState.isSelectionModeActive) ? `window.toggleAlunoSelection('${a.id}')` : `window.showAlunoDetail('${a.id}')`; 
+                     const editButtonHtml = (showAdminFeaturesRender && !window.appState.isSelectionModeActive) ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` : ''; 
+                     return `<div class="${cardCls}" data-aluno-id="${a.id}" onclick="${clickH}">${avatar}<div class="card-info"><div class="card-title">${escapeHTML(a.nome)}</div><div class="card-subtitle">${escapeHTML(a.turma||'S/T')} / Mat: ${escapeHTML(a.matricula || '')}</div></div>${editButtonHtml}<span class="material-icons-outlined card-chevron">chevron_right</span></div>`; 
+                 }).join('');
+                 list.innerHTML = itemsHtml; 
+             } catch (error) { 
+                 console.error("Erro renderAlunos map:", error); 
+                 list.innerHTML = `<div class='empty-state' style='text-align: left; padding: 15px;'><h3 style='color:red;'>Erro ao Renderizar Alunos!</h3><p style='color:var(--color-text);'>Por favor, reporte este erro:</p><pre style='background: var(--color-border); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; font-size: 12px; color: red; margin-top: 10px;'>${escapeHTML(error.message)}\n\n${escapeHTML(error.stack)}</pre></div>`; 
              }
         }
 
-        // --- Renderização Turmas (TESTE FINAL ULTRA SIMPLIFICADO) ---
+        // --- Renderização Turmas (Versão Original Restaurada) ---
         window.renderTurmas = () => { 
-            alert("Função renderTurmas CHAMADA.");
+            console.log("renderTurmas chamado.");
             const list = document.getElementById('turmasList'); 
             
-            alert(`renderTurmas: Testando elementos... list=${list ? 'OK' : 'FALHOU'}, loggedIn=${window.appState.isLoggedIn ? 'OK' : 'FALHOU'}`);
-             
             if(!list || !window.appState.isLoggedIn) { 
-                 alert("renderTurmas: Saindo cedo!");
-                 if(list) list.innerHTML = '<p style="color: red; font-size: 16px; padding: 20px;">ERRO: renderTurmas saiu cedo!</p>';
+                 console.warn("renderTurmas: Saindo cedo.");
                  return; 
-             }
+            }
 
-            alert("renderTurmas: Elementos OK. Tentando definir innerHTML SIMPLES...");
+            const q = window.appState.searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,""); 
+            window.appState.filteredTurmas = (window.appState.turmasData || []).filter(t => { if(q.length === 0) return true; const sf = [t.nome, t.serie].filter(Boolean).join(' ').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); return sf.includes(q); }); 
+            
+            const count = window.appState.filteredTurmas.length;
 
-            const totalCount = (window.appState.turmasData || []).length;
-             const filteredCount = (window.appState.filteredTurmas || []).length; // Usa a lista já filtrada se existir
-
+            if (count === 0) { 
+                list.innerHTML = `<div class="empty-state"><span class="material-icons-outlined">class</span><h3>Nenhuma Turma Encontrada</h3><p>Adicione novas turmas no modo Admin.</p></div>`; 
+                return; 
+            } 
+            
+            const alunosGlobais = window.appState.alunosData || []; 
+            const showAdminButtonsRender = window.appState.isAdmin && window.appState.viewAsAdmin; 
             try {
-                 // *** INNERHTML SUPER SIMPLES ***
-                 list.innerHTML = `<p style="color: blue; font-size: 18px; padding: 20px; border: 2px solid blue;">
-                                     renderTurmas EXECUTADO! Total Dados=${totalCount} (${new Date().toLocaleTimeString()})
-                                   </p>`;
-                alert("renderTurmas: innerHTML SIMPLES foi definido. Verifique a tela AGORA.");
-            } catch (e) {
-                alert(`ERRO CRÍTICO no innerHTML (renderTurmas): ${e.message}`);
-                if(list) list.innerHTML = `<p style="color: red; font-size: 16px; padding: 20px;">ERRO JS (Turmas): ${e.message}</p>`;
+                const itemsHtml = window.appState.filteredTurmas.map(t => { 
+                    const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); 
+                    const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; 
+                    const editButtonHtml = showAdminButtonsRender ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` : ''; 
+                    const avatar = `<div class="avatar-placeholder" style="background:var(--color-border);color:var(--color-active-link); border-radius:var(--avatar-border-radius);"><span class="material-icons-outlined">school</span></div>`;
+                    return `<div class="card" style="cursor:pointer;" onclick="window.showTurmaDetail('${t.id}')">${avatar}<div class="card-info"><div class="card-title">${escapeHTML(t.nome)}</div><div class="card-subtitle">${escapeHTML(t.serie||'N/D')} • ${aM} aluno(s)</div></div>${editButtonHtml}<span class="material-icons-outlined card-chevron">chevron_right</span></div>`; 
+                }).join('');
+                list.innerHTML = itemsHtml; 
+            } catch (error) {
+                console.error("Erro renderTurmas map:", error); 
+                list.innerHTML = `<div class='empty-state' style='text-align: left; padding: 15px;'><h3 style='color:red;'>Erro ao Renderizar Turmas!</h3><p style='color:var(--color-text);'>Por favor, reporte este erro:</p><pre style='background: var(--color-border); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; font-size: 12px; color: red; margin-top: 10px;'>${escapeHTML(error.message)}\n\n${escapeHTML(error.stack)}</pre></div>`;
             }
         }
 
-        // --- Listeners do Firestore (COM ALERTS) ---
+        // --- Listeners do Firestore (Logs mantidos) ---
         function iniciarListenersFirestore() {
             console.log("Iniciando listeners do Firestore...");
             try {
@@ -950,8 +970,6 @@
                     const currentTurmaValue = document.getElementById('alunoTurma')?.value;
                     populateTurmaSelect('alunoTurma', currentTurmaValue); 
                     
-                    alert(`Turmas recebidas: ${snapshot.docs.length}. Chamando render...`); 
-
                     if (window.appState.currentTab === 'turmas') window.renderTurmas(); 
                     else if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
                 }, (e) => { console.error("Erro no listener de TURMAS:", e); window.showToast('Erro ao carregar Turmas.', 'error'); });
@@ -963,8 +981,6 @@
                     console.log("Recebidos dados de ALUNOS:", snapshot.docs.length);
                     window.appState.alunosData = snapshot.docs.map(d => ({ id: d.id, ...d.data() })); 
                     
-                    alert(`Alunos recebidos: ${snapshot.docs.length}. Chamando render...`); 
-
                     if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
                     window.renderTurmas(); // Sempre atualiza stats das turmas
                 }, (e) => { console.error("Erro no listener de ALUNOS:", e); window.showToast('Erro ao carregar Alunos.', 'error'); });
@@ -989,7 +1005,9 @@
         // --- Inicializa ---
         applySavedTheme(); 
         
-        // --- PWA: Registar o Service Worker ---
+        
+        // --- PWA: Registar o Service Worker (DESATIVADO PERMANENTEMENTE) ---
+        /*
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
             navigator.serviceWorker.register('./service-worker.js')
@@ -997,6 +1015,9 @@
               .catch(err => console.error('Registo ServiceWorker falhou:', err));
           });
         }
+        */
+        console.log("REGISTRO DO SERVICE WORKER IGNORADO.");
+        
         
         console.log("Script principal finalizado (aguardando Auth state).");
 
