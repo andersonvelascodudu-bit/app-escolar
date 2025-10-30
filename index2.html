@@ -1,405 +1,30 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema Escolar NATA</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#004d40">
-    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
-
-    <style>
-        /* Estilos CSS (idênticos aos anteriores, omitidos por brevidade) */
-        :root {
-            --bg-body: #f5f5f5; --bg-card: white; --color-text: #333; --color-secondary: #666;
-            --color-border: #e0e0e0; --color-input-bg: #f5f5f5; --color-chip-bg: white;
-            --color-chip-border: #ddd; --color-active-link: #004d40; /* Verde NATA */ --color-warning: #f57c00;
-            --color-warning-bg: #fff3e0; --color-danger-bg: #ffebee; --color-secondary-btn-bg: #f0f0f0;
-            --color-secondary-btn-text: #666; --color-selection-border: #607D8B; --color-selected-border: #004d40;
-            --avatar-border-radius: 50%; /* Avatares redondos */ --header-height: auto; --bottom-nav-height: 60px;
-        }
-        .dark-mode {
-            --bg-body: #121212; --bg-card: #1e1e1e; --color-text: #e0e0e0; --color-secondary: #b0b0b0;
-            --color-border: #333333; --color-input-bg: #2d2d2d; --color-chip-bg: #2d2d2d;
-            --color-chip-border: #444444; --color-active-link: #80cbc4; /* Verde NATA Claro */ --color-warning: #ffa726;
-            --color-warning-bg: #4c3e00; --color-danger-bg: #4a1c1c; --color-secondary-btn-bg: #2d2d2d;
-            --color-secondary-btn-text: #b0b0b0; --color-selection-border: #78909C; --color-selected-border: #80cbc4;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; 
-            background: var(--bg-body); 
-            color: var(--color-text); 
-            padding-bottom: var(--bottom-nav-height);
-            transition: background 0.3s, color 0.3s; 
-        }
-        .header {
-            background: var(--bg-card);
-            color: var(--color-text);
-            padding: 10px 15px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .header h1 {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--color-text);
-            margin-right: auto;
-        }
-        .header-actions { display: flex; gap: 8px; align-items: center; }
-        .search-box {
-            flex: 1 1 150px;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 25px;
-            font-size: 14px;
-            background: var(--color-input-bg);
-            color: var(--color-text);
-            min-width: 100px;
-        }
-        .header-btn {
-            background: var(--color-secondary-btn-bg);
-            border: 1px solid var(--color-chip-border);
-            color: var(--color-secondary-btn-text);
-            font-size: 11px;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.3s;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            padding: 0;
-        }
-        .header-btn .material-icons-outlined { font-size: 20px; }
-        .header-btn:hover { background: var(--color-border); }
-        .header-btn.active {
-            background: var(--color-active-link);
-            border-color: var(--color-active-link);
-            color: white;
-        }
-        .header-btn#selectBtn.active {
-            width: auto;
-            padding: 0 15px;
-            border-radius: 25px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .header-btn#selectBtn.active .material-icons-outlined {
-            font-size: 18px;
-            margin-right: 4px;
-        }
-        #contentContainer { padding-top: 0; display: none; }
-        .content { padding: 15px; }
-        .filter-chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 15px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-        .filter-chips::-webkit-scrollbar { display: none; }
-        .chip { padding: 8px 16px; background: var(--color-chip-bg); border: 1px solid var(--color-chip-border); border-radius: 20px; font-size: 13px; cursor: pointer; white-space: nowrap; transition: all 0.3s; color: var(--color-secondary); }
-        .chip.active { background: var(--color-active-link); color: white; border-color: var(--color-active-link); }
-        .card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-            border: 2px solid transparent;
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
-        .dark-mode .card { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-        .card:not(.selectable):active { transform: scale(0.98); }
-        .card.selectable { cursor: pointer; border-color: var(--color-selection-border); }
-        .card.selected { border-color: var(--color-selected-border); background: var(--color-warning-bg); }
-        .card.selected::before {
-            content: '✓'; position: absolute; top: -1px; left: -1px; background-color: var(--color-selected-border);
-            color: white; border-radius: 12px 0 12px 0; width: 22px; height: 22px;
-            display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; z-index: 1;
-        }
-        .avatar, .avatar-placeholder {
-            width: 45px; height: 45px;
-            border-radius: var(--avatar-border-radius);
-            object-fit: cover; background: var(--color-border); display: flex;
-            align-items: center; justify-content: center; font-weight: 600;
-            font-size: 10px; text-align: center; line-height: 1.2;
-            overflow: hidden; flex-shrink: 0; color: var(--color-text);
-        }
-        .avatar-placeholder {
-            background: linear-gradient(135deg, #455A64 0%, #263238 100%);
-            color: white; font-size: 18px;
-        }
-        .avatar-placeholder .material-icons-outlined { font-size: 24px; }
-        .avatar-placeholder-semfoto { background: #333; color: white; }
-        .avatar-placeholder-transferido { background: var(--color-warning); color: white; font-weight: bold; }
-        .card-info { flex: 1; min-width: 0; }
-        .card-title {
-            font-weight: 600; font-size: 15px; margin-bottom: 2px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .card-subtitle {
-            color: var(--color-secondary); font-size: 12px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .card-edit-btn {
-            background: none; border: none; color: var(--color-secondary);
-            cursor: pointer; padding: 5px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .card-edit-btn:hover { background: var(--color-border); color: var(--color-text); }
-        .card-edit-btn .material-icons-outlined { font-size: 20px; }
-        .card-chevron {
-            color: var(--color-border);
-            font-size: 24px;
-            flex-shrink: 0;
-        }
-        .card:hover .card-chevron { color: var(--color-secondary); }
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-card);
-            border-top: 1px solid var(--color-border);
-            display: flex;
-            justify-content: space-around;
-            padding-top: 8px;
-            padding-bottom: 8px;
-            z-index: 100;
-            height: var(--bottom-nav-height);
-        }
-        .nav-item {
-            flex: 1; text-align: center; padding: 4px; cursor: pointer;
-            color: var(--color-secondary); font-size: 10px; transition: color 0.3s;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .nav-item .material-icons-outlined {
-            font-size: 22px;
-            margin-bottom: 2px;
-        }
-        .nav-item.active {
-            color: var(--color-active-link);
-        }
-        .fab {
-            position: fixed;
-            bottom: calc(var(--bottom-nav-height) + 20px);
-            right: 20px;
-            width: 56px;
-            min-width: 56px;
-            height: 56px;
-            border-radius: 28px;
-            padding: 0;
-            background: linear-gradient(135deg, #2196F3 0%, var(--color-active-link) 100%);
-            color: white; border: none; font-size: 16px; font-weight: 600;
-            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: all 0.3s; z-index: 101;
-        }
-        .fab .material-icons-outlined { font-size: 24px; }
-        .fab:active { transform: scale(0.95); }
-        #deleteSelectedBtn {
-            background: #f44336;
-            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
-            width: auto;
-            padding: 0 20px;
-        }
-        #deleteSelectedBtn .material-icons-outlined {
-            font-size: 20px;
-            margin-right: 8px;
-        }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .sync-status {
-            position: fixed;
-            bottom: calc(var(--bottom-nav-height) + 15px);
-            left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); color: white; padding: 8px 15px;
-            border-radius: 25px; font-size: 12px; display: none;
-            align-items: center; gap: 8px; z-index: 999;
-        }
-        .sync-status.active { display: flex; }
-        .sync-status .material-icons-outlined {
-            font-size: 16px;
-            animation: spin 1.5s linear infinite;
-        }
-        #toastContainer {
-            position: fixed;
-            bottom: calc(var(--bottom-nav-height) + 10px);
-            left: 50%; transform: translateX(-50%);
-            z-index: 2000; display: flex; flex-direction: column-reverse;
-            align-items: center; gap: 8px; width: 90%; max-width: 400px;
-        }
-        .toast { padding: 10px 15px; border-radius: 8px; color: white; font-size: 13px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: translateY(10px); width: 100%; text-align: center; }
-        .toast-success { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); }
-        .toast-error { background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); }
-        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .modal.active { display: flex; align-items: flex-start; justify-content: center; padding: 20px; }
-        .modal-content { background: var(--bg-card); border-radius: 16px; width: 100%; max-width: 500px; margin: auto; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s; }
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--bg-card); z-index: 1; }
-        .modal-header h2 { font-size: 18px; font-weight: 600; color: var(--color-text); }
-        .close-btn { background: none; border: none; font-size: 28px; cursor: pointer; color: var(--color-secondary); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
-        .modal-body { padding: 20px; }
-        .form-group { margin-bottom: 18px; }
-        .form-label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: var(--color-secondary); }
-        .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-chip-border); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--color-input-bg); color: var(--color-text); transition: border-color 0.2s; }
-        .form-group.inline-fields { display: flex; gap: 10px; align-items: flex-start; }
-        .form-group.inline-fields > div { flex: 1; }
-        .form-input:focus { outline: none; border-color: var(--color-active-link); }
-        textarea.form-input { min-height: 70px; resize: vertical; }
-        .form-section-title { font-size: 15px; font-weight: 600; color: var(--color-active-link); margin-top: 20px; margin-bottom: 12px; padding-bottom: 5px; border-bottom: 1px solid var(--color-border); }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-        .btn-primary { background: linear-gradient(135deg, #2196F3 0%, var(--color-active-link) 100%); color: white; }
-        .btn-secondary { background: var(--color-secondary-btn-bg); color: var(--color-secondary-btn-text); }
-        .btn-primary:active, .btn-secondary:active { transform: scale(0.98); opacity: 0.9; }
-        .btn-danger { background: #f44336; color: white; margin-top: 10px; }
-        .detail-section { margin-bottom: 18px; }
-        .detail-section h3 { font-size: 13px; color: var(--color-active-link); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--color-border); align-items: baseline; }
-        .detail-label { width: 35%; color: var(--color-secondary); font-size: 12px; flex-shrink: 0; }
-        .detail-value { flex: 1; font-weight: 500; font-size: 14px; color: var(--color-text); white-space: pre-wrap; word-break: break-word; }
-        .detail-text-area { padding: 8px; background: var(--color-input-bg); border-radius: 6px; font-size: 13px; white-space: pre-wrap; min-height: 40px; border: 1px solid var(--color-border); margin-top: 5px; }
-        .detail-avatar { width: 100px; height: 100px; border-radius: var(--avatar-border-radius); object-fit: cover; margin: 0 auto 15px; display: block; border: 3px solid var(--color-border); }
-        .turma-aluno-list .card { padding: 10px; margin-bottom: 8px; cursor: pointer; }
-        .turma-aluno-list .avatar, .turma-aluno-list .avatar-placeholder { width: 35px; height: 35px; font-size: 9px; }
-        .turma-aluno-list .avatar-placeholder { font-size: 14px; }
-        .turma-aluno-list .card-title { font-size: 14px; margin-bottom: 2px; }
-        .turma-aluno-list .card-subtitle { font-size: 11px; }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--color-secondary); }
-        .empty-state .material-icons-outlined { font-size: 60px; margin-bottom: 15px; opacity: 0.3; }
-        .empty-state h3 { font-size: 16px; margin-bottom: 5px; }
-        .empty-state p { font-size: 13px; }
-        .loading { text-align: center; padding: 40px; color: var(--color-secondary); }
-        .modal-nav { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
-        .modal-nav .btn { flex: 1; padding: 10px; font-size: 14px; }
-        @media (max-width: 480px) { .header-actions { gap: 5px; } .header-btn { width: 35px; height: 35px; } .header-btn .material-icons-outlined { font-size: 18px; } .search-box { display: none; } }
-        @media (max-width: 360px) { .header h1 { font-size: 18px; } }
-        #loginScreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-        #loginScreen h2 { margin-bottom: 30px; }
-        #loginScreen p { margin-bottom: 20px; }
-        #loginScreen button { margin-top: 10px; }
-        #loginScreen #authError { margin-top: 15px; min-height: 1.2em; }
-        #currentPhotoContainer img { max-width: 80px; max-height: 80px; border-radius: var(--avatar-border-radius); object-fit: cover; border: 1px solid var(--color-border); margin-bottom: 10px; }
-    </style>
-</head>
-<body class="dark-mode">
-
-    <div id="loginScreen">
-        <h2 style="color: var(--color-text);">Sistema Escolar NATA</h2>
-        <p id="loginMessage" style="color: var(--color-secondary);">A verificar autenticação...</p>
-        <button id="loginButton" class="btn btn-primary" style="display: none; max-width: 250px;">Entrar com Google</button>
-        <p id="authError" style="color: #f44336; font-size: 14px;"></p>
-    </div>
-
-    <div id="appContainer" style="display: none;">
-
-        <div class="header" id="mainHeader">
-            <h1>Sistema</h1>
-            <input type="text" class="search-box" id="searchBox" placeholder="Buscar...">
-            
-            <div class="header-actions">
-                <button class="header-btn" id="toggleViewBtn" onclick="window.toggleViewMode()" style="display: none; background-color: #ff9800; border-color: #ff9800;" title="Mudar Vista">
-                    <span class="material-icons-outlined">visibility</span>
-                </button>
-                <button class="header-btn" id="logoutBtn" onclick="window.logout()" style="display: none;" title="Logout">
-                    <span class="material-icons-outlined">person</span>
-                </button>
-                <button class="header-btn" id="selectBtn" onclick="window.toggleSelectionMode()" style="display: none; background-color: #607D8B; border-color: #607D8B;" title="Selecionar">
-                    <span class="material-icons-outlined">select_all</span>
-                </button>
-                <button class="header-btn" id="backupBtn" onclick="window.showBackupOptions()" style="display: none; background-color: #f57c00; border-color: #f57c00;" title="Backup">
-                    <span class="material-icons-outlined">backup</span>
-                </button>
-                <button class="header-btn" id="importBtn" onclick="window.showImportModal()" style="display: none; background-color: #388E3C; border-color: #388E3C;" title="Importar">
-                    <span class="material-icons-outlined">file_upload</span>
-                </button>
-                <button class="header-btn" id="themeToggleBtn" onclick="window.toggleTheme()" title="Mudar Tema">
-                    <span class="material-icons-outlined">light_mode</span>
-                </button>
-            </div>
-        </div>
-
-        <div id="contentContainer">
-            <div class="content" id="alunosContent">
-                <div class="filter-chips" id="turmaFilters"></div>
-                <div id="alunosList"><div class="loading">A carregar alunos...</div></div>
-            </div>
-            <div class="content" id="turmasContent" style="display:none;">
-                <div id="turmasList"><div class="loading">A carregar turmas...</div></div>
-            </div>
-        </div>
-
-        <button class="fab" id="fabBtn" onclick="window.openAddModal()" style="display:none;" title="Adicionar">
-            <span class="material-icons-outlined">add</span>
-        </button>
-        <button class="fab" id="deleteSelectedBtn" onclick="window.deleteSelectedAlunos()" style="display:none;">
-            <span class="material-icons-outlined">delete</span> Excluir (0)
-        </button>
-
-        <div class="sync-status" id="syncStatus">
-            <span class="material-icons-outlined">sync</span> Sincronizando...
-        </div>
-        <div id="toastContainer"></div>
-
-        <div class="modal" id="alunoModal"> <div class="modal-content"> <div class="modal-header"> <h2 id="alunoModalTitle">Adicionar Aluno</h2> <button class="close-btn" onclick="window.closeModal('alunoModal')">&times;</button> </div> <div class="modal-body"> <form id="alunoForm" onsubmit="window.saveAluno(event)"> <div class="form-section-title">Foto do Aluno</div> <div class="form-group"> <label class="form-label">Link da Foto (Ex: Google Drive)</label> <input type="url" class="form-input" id="alunoFotoURL" placeholder="Cole o link de partilha aqui..."> <p style="font-size: 11px; margin-top: 5px; color: var(--color-secondary);">* Certifique-se que a partilha é "Qualquer pessoa com o link".</p> </div> <div class="form-group" id="currentPhotoContainer" style="display:none; text-align:center;"> <label class="form-label">Foto Atual</label> <img id="currentPhotoPreview" src=""> <button type="button" class="btn btn-danger" style="width: auto; padding: 5px 10px; margin: 10px auto 0; font-size: 12px;" onclick="window.removeCurrentPhotoURL()">Remover Link</button> </div> <div class="form-section-title">Dados Básicos</div> <div class="form-group"><label class="form-label">Nome Completo *</label><input type="text" class="form-input" id="alunoNome" required></div> <div class="form-group inline-fields"><div><label class="form-label">Matrícula *</label><input type="text" class="form-input" id="alunoMatricula" required></div><div><label class="form-label">Nº Diário</label><input type="text" class="form-input" id="alunoDiario"></div></div> <div class="form-group"><label class="form-label">Turma *</label><select class="form-input" id="alunoTurma" required></select></div> <div class="form-group inline-fields"><div><label class="form-label">Status</label><select class="form-input" id="alunoStatus"><option value="Matriculado">Matriculado</option><option value="Transferido">Transferido</option></select></div><div><label class="form-label">Nascimento</label><input type="date" class="form-input" id="alunoNascimento"></div></div> <div class="form-group inline-fields"><div><label class="form-label">CPF</label><input type="text" class="form-input" id="alunoCPF"></div><div><label class="form-label">Telefone (Aluno)</label><input type="tel" class="form-input" id="alunoTelefone"></div></div> <div class="form-section-title">Responsável 1</div> <div class="form-group inline-fields"><div style="flex:2;"><label class="form-label">Nome</label><input type="text" class="form-input" id="alunoResponsavel1Nome"></div><div><label class="form-label">Parentesco</label><select class="form-input" id="alunoResponsavel1Tipo"><option value="">N/I</option><option value="Mãe">Mãe</option><option value="Pai">Pai</option><option value="Outro">Outro</option></select></div></div> <div class="form-group"><label class="form-label">Contato</label><input type="tel" class="form-input" id="alunoResponsavel1Tel"></div> <div class="form-section-title">Responsável 2</div> <div class="form-group inline-fields"><div style="flex:2;"><label class="form-label">Nome</label><input type="text" class="form-input" id="alunoResponsavel2Nome"></div><div><label class="form-label">Parentesco</label><select class="form-input" id="alunoResponsavel2Tipo"><option value="">N/I</option><option value="Mãe">Mãe</option><option value="Pai">Pai</option><option value="Outro">Outro</option></select></div></div> <div class="form-group"><label class="form-label">Contato</label><input type="tel" class="form-input" id="alunoResponsavel2Tel"></div> <div class="form-section-title">Info Adicional</div> <div class="form-group inline-fields"><div><label class="form-label">PCD?</label><select class="form-input" id="alunoPCD"><option value="false">Não</option><option value="true">Sim</option></select></div><div><label class="form-label">Prova Dif.?</label><select class="form-input" id="alunoProvaDif"><option value="false">Não</option><option value="true">Sim</option></select></div></div> <div class="form-group"><label class="form-label">Monitorias</label><textarea class="form-input" id="alunoMonitorias"></textarea></div> <div class="form-group"><label class="form-label">Projetos</label><textarea class="form-input" id="alunoProjetos"></textarea></div> <div class="form-group"><label class="form-label">Obs 1</label><textarea class="form-input" id="alunoObs1"></textarea></div> <div class="form-section-title">Disciplinar</div> <div class="form-group"><label class="form-label">Dispensas</label><textarea class="form-input" id="alunoDispensas"></textarea></div> <div class="form-group"><label class="form-label">Notificações</label><textarea class="form-input" id="alunoNotificacoes"></textarea></div> <div class="form-group"><label class="form-label">Advertências</label><textarea class="form-input" id="alunoAdvertencias"></textarea></div> <div class="form-group"><label class="form-label">Suspensões</label><textarea class="form-input" id="alunoSuspensoes"></textarea></div> <div class="form-group"><label class="form-label">Obs 2</label><textarea class="form-input" id="alunoObs2"></textarea></div> <button type="submit" class="btn btn-primary" id="saveAlunoBtn">Salvar</button> <button type="button" class="btn btn-danger" id="deleteAlunoBtn" onclick="window.deleteAluno()" style="display:none;">Excluir</button> </form> </div> </div> </div>
-        <div class="modal" id="alunoDetailModal"><div class="modal-content"><div class="modal-header"><h2>Detalhes Aluno</h2><button class="close-btn" onclick="window.closeModal('alunoDetailModal')">&times;</button></div><div class="modal-body" id="alunoDetailBody"></div></div></div>
-        <div class="modal" id="turmaModal"><div class="modal-content"><div class="modal-header"><h2 id="turmaModalTitle">Adicionar Turma</h2><button class="close-btn" onclick="window.closeModal('turmaModal')">&times;</button></div><div class="modal-body"><form id="turmaForm" onsubmit="window.saveTurma(event)"><div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="turmaNome" required></div><div class="form-group"><label class="form-label">Série/Ano</label><input type="text" class="form-input" id="turmaSerie"></div><div class="form-group"><label class="form-label">Obs</label><textarea class="form-input" id="turmaObs"></textarea></div><button type="submit" class="btn btn-primary">Salvar</button><button type="button" class="btn btn-danger" id="deleteTurmaBtn" onclick="window.deleteTurma()" style="display:none;">Excluir</button></form></div></div></div>
-        <div class="modal" id="turmaDetailModal"><div class="modal-content"><div class="modal-header"><h2>Detalhes Turma</h2><button class="close-btn" onclick="window.closeModal('turmaDetailModal')">&times;</button></div><div class="modal-body" id="turmaDetailBody"></div></div></div>
-        <div class="modal" id="backupModal"><div class="modal-content" style="max-width:400px;"><div class="modal-header"><h2>Backup (Exportar CSV)</h2><button class="close-btn" onclick="window.closeModal('backupModal')">&times;</button></div><div class="modal-body"><p>Exportar dados como planilha CSV:</p><button class="btn btn-primary" onclick="window.exportAlunosCSV()" style="margin-bottom:10px;">Exportar Alunos</button><button class="btn btn-secondary" onclick="window.exportTurmasCSV()">Exportar Turmas</button></div></div></div>
-        <div class="modal" id="importModal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h2>Importar (CSV)</h2><button class="close-btn" onclick="window.closeModal('importModal')">&times;</button></div><div class="modal-body"><div class="form-group"><label class="form-label">Tipo</label><select id="importType" class="form-input"><option value="alunos">Alunos</option><option value="turmas">Turmas</option></select></div><div class="form-group"><label class="form-label">Arquivo CSV</label><input type="file" id="csvFileInput" accept=".csv" class="form-input"></div><div style="background:var(--color-warning-bg);padding:10px;border-radius:8px;font-size:13px;color:var(--color-text);margin-bottom:20px;"><strong>Atenção:</strong><ul style="margin-left:20px;margin-top:5px;"><li>CSV simples (vírgula).</li><li>Cabeçalhos idênticos aos campos.</li><li>Sem vírgulas nos dados.</li><li><code>pcd</code>/<code>provaDif</code> = <code>true</code> ou <code>false</code>.</li><li>Use backup como modelo.</li></ul></div><button class="btn btn-primary" onclick="window.handleImport()">Importar</button><div id="importStatus" style="text-align:center;margin-top:15px;"></div></div></div></div>
-
-        <div class="bottom-nav">
-            <div class="nav-item active" data-tab="alunos" onclick="window.switchTab('alunos')">
-                <span class="material-icons-outlined">groups</span>
-                <div>Alunos</div>
-            </div>
-            <div class="nav-item" data-tab="turmas" onclick="window.switchTab('turmas')">
-                <span class="material-icons-outlined">school</span>
-                <div>Turmas</div>
-            </div>
-        </div>
-
-    </div> <script type="module">
+    <script type="module">
         console.log("Script principal iniciado.");
 
         // Imports Firebase (Autenticação e Firestore)
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { initializeApp } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         
-        // ===== MUDANÇA 1: Importa 'initializeFirestore' e 'persistentLocalCache' =====
-        // remove 'getFirestore' e 'enableIndexedDbPersistence'
         import { 
             initializeFirestore, persistentLocalCache, collection, onSnapshot, 
             updateDoc, deleteDoc, doc, addDoc, setDoc, query, orderBy, writeBatch 
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
-        // Imports de Autenticação (já corrigidos para 'signInWithRedirect')
         import { 
             getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, 
             signOut, onAuthStateChanged 
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        } from 'https.www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
         console.log("Módulos Firebase importados.");
 
         // =================================================================
         // *** 1. PREENCHA AQUI: Cole a sua configuração do Firebase ***
+        // (Verifique se copiou o bloco correto do seu painel)
         // =================================================================
         const firebaseConfig = {
-             apiKey: "AIzaSyBT1gu4-FghvGiJUqqyFjTG5ADAt3_VUDU",
+             apiKey: "AIzaSy...", // (SEU CÓDIGO AQUI)
              authDomain: "nata-b913d.firebaseapp.com",
              projectId: "nata-b913d",
-             storageBucket: "nata-b913d.firebasestorage.app",
+             storageBucket: "nata-b913d.appspot.com",
              messagingSenderId: "349396363879",
              appId: "1:349396363879:web:1adc27c5f1a2af6c02c2c2"
         };
@@ -408,24 +33,33 @@
         // Init Firebase & Serviços
         let app, db, auth, provider;
         try {
-            if (firebaseConfig.apiKey === "AIzaSyBT1gu4-FghvGiJUqqyFjTG5ADAt3_VUDU") {
-                 throw new Error("Configuração do Firebase não preenchida.");
+            // A verificação original (pode removê-la se tiver a certeza,
+            // mas vamos mantê-la por enquanto)
+            if (firebaseConfig.apiKey.startsWith("AIzaSy...")) {
+                 throw new Error("Configuração do Firebase não preenchida (ainda com placeholder).");
             }
             app = initializeApp(firebaseConfig);
             
-            // ===== MUDANÇA 2: Inicializa o Firestore com persistência (método novo) =====
             db = initializeFirestore(app, {
-                cache: persistentLocalCache(/* { tabManager: 'primary' } */)
+                cache: persistentLocalCache()
             });
 
             auth = getAuth(app); 
             provider = new GoogleAuthProvider(); 
             console.log("Firebase inicializado com persistência (método novo).");
+        
         } catch (error) {
-             console.error("ERRO GRAVE: Falha ao inicializar o Firebase.", error.message);
-             document.getElementById('loginMessage').textContent = "Erro de Configuração";
-             document.getElementById('authError').textContent = "Falha Firebase. Verifique a configuração no index2.html.";
-             throw new Error("Parando execução: erro Firebase init.");
+            
+            // ===== MUDANÇA IMPORTANTE =====
+            // Isto agora vai mostrar o erro REAL no ecrã de login
+            console.error("ERRO REAL NA INICIALIZAÇÃO:", error);
+            const authErrorEl = document.getElementById('authError');
+            if(authErrorEl) {
+                authErrorEl.textContent = `ERRO: ${error.message}`;
+            }
+            // =================================
+            
+            throw new Error(`Parando execução: ${error.message}`);
         }
 
         // Estado Global
@@ -436,10 +70,12 @@
             
             // =================================================================
             // *** 2. PREENCHA AQUI: Lista de emails que podem ACESSAR a app ***
+            // (Verifique se o seu email de login está EXATAMENTE aqui)
             // =================================================================
             authorizedUserEmails: [	
-                'andersonvelascodudu@gmail.com',
+                'email.autorizado1@gmail.com',
                 'email.autorizado2@hotmail.com'
+                // ex: 'andersonvelascodudu@gmail.com'
             ], 
             // =================================================================
 
@@ -447,8 +83,9 @@
             // *** 3. PREENCHA AQUI: Lista de emails que têm permissão de ADMIN ***
             // =================================================================
             adminEmails: [		
-                'andersonvelascodudu@gmail.com',
+                'seu.email.admin@gmail.com',
                 'outro.admin@gmail.com'
+                // ex: 'andersonvelascodudu@gmail.com'
             ], 
             // =================================================================
 
@@ -456,13 +93,9 @@
             filteredAlunos: [], currentAlunoIndex: -1, filteredTurmas: [], currentTurmaIndex: -1,
             isSelectionModeActive: false, selectedAlunoIds: [] 
         };
-
-        // --- Persistência Offline ---
-        // ===== MUDANÇA 3: Remove o bloco 'enableIndexedDbPersistence(db)' =====
-        // (Isto agora é feito acima, durante a inicialização)
         
-
         // --- Funções Utilitárias ---
+        // (O resto do código é idêntico)
         window.openModal = (id) => { const el = document.getElementById(id); if(el) { el.classList.add('active'); document.body.style.overflow = 'hidden'; } }
         window.closeModal = (id) => { const el = document.getElementById(id); if(el) { el.classList.remove('active'); document.body.style.overflow = ''; } }
         
@@ -589,7 +222,6 @@
 
 
         // --- Funções Admin, FAB e Seleção Múltipla ---
-        // (Nenhuma mudança aqui, todo o código abaixo é idêntico ao anterior)
         function updateAdminUI() {
              console.log("updateAdminUI chamado. ViewAsAdmin:", window.appState.viewAsAdmin); 
              try { 
