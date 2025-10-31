@@ -432,7 +432,8 @@
             initializeFirestore, 
             persistentLocalCache, 
             collection, onSnapshot, 
-            updateDoc, deleteDoc, doc, addDoc, setDoc, query, orderBy, writeBatch 
+            updateDoc, deleteDoc, doc, addDoc, setDoc, query, orderBy, writeBatch,
+            getDoc
         } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js';
         
         import { 
@@ -556,10 +557,12 @@
             // =================================================================
             // *** 2. PREENCHA AQUI: Lista de emails que são ADMINS ***
             // =================================================================
+            /*
             adminEmails: [
                 'admin@nata.br', // <-- E-mail do Admin
                 'seu.email.admin@gmail.com' // <-- Outro e-mail de Admin
             ],
+            */
             // =================================================================
 
             userEmail: null, isLoggedIn: false, 
@@ -671,13 +674,31 @@
                 onAuthStateChanged(auth, async (user) => { 
                      console.log("onAuthStateChanged (após persistência):", user ? user.email : 'Nenhum utilizador'); 
                      try { 
-                        if (user) { 
-                            // O utilizador está logado (online ou via cache)
-                            window.appState.isLoggedIn = true; 
-                            window.appState.userEmail = user.email;
-                            window.appState.isAdmin = window.appState.adminEmails.includes(user.email);
-                            console.log("Utilizador logado. É Admin?", window.appState.isAdmin);
+                        // (Novo código)
+                            if (user) { 
+                                // O utilizador está logado (online ou via cache)
+                                window.appState.isLoggedIn = true; 
+                                window.appState.userEmail = user.email;
                             
+                                // ===== MODIFICAÇÃO CHAVE =====
+                                // Verifica o status de admin no Firestore em vez do array local
+                                try {
+                                    const userDocRef = doc(db, 'users', user.uid);
+                                    const userDoc = await getDoc(userDocRef);
+
+                            if (userDoc.exists() && userDoc.data().role === 'admin') {
+                                window.appState.isAdmin = true;
+                            } else {
+                                window.appState.isAdmin = false;
+                            }
+                        } catch (e) {
+                            console.error("Erro ao verificar status de admin:", e);
+                            window.appState.isAdmin = false; // Garante que não é admin se falhar
+                        }
+                        // =============================
+                
+                        console.log(`Utilizador logado (${user.email}). É Admin?`, window.appState.isAdmin);
+
                             if (loginScreen) loginScreen.style.display = 'none'; 
                             if (appContainer) appContainer.style.display = 'block'; 
                             if (contentContainer) contentContainer.style.display = 'block';
