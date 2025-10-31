@@ -561,6 +561,12 @@
         let unsubscribeAlunos = null; 
         let unsubscribeTurmas = null; 
 
+        // ===== MODIFICAÇÃO OFFLINE =====
+        // Diga ao Firebase para usar o cache local IMEDIATAMENTE.
+        // Isso força o onAuthStateChanged a ler do cache se estiver offline.
+        setPersistence(auth, browserLocalPersistence);
+        // ================================
+        
         onAuthStateChanged(auth, (user) => { 
              console.log("onAuthStateChanged:", user ? user.email : 'Nenhum utilizador'); 
              try { 
