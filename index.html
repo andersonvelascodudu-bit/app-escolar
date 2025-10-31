@@ -443,6 +443,75 @@
         
         console.log("Módulos Firebase importados (v10.12.3).");
 
+        // ===== MODIFICAÇÃO: Gestor de Cache Manual (IndexedDB) =====
+        window.dbCacheManager = {
+            db: null,
+            DB_NAME: 'NataCacheManual',
+            DB_VERSION: 1,
+            STORE_ALUNOS: 'alunos',
+            STORE_TURMAS: 'turmas',
+
+            initDB: function() {
+                return new Promise((resolve, reject) => {
+                    if (this.db) return resolve(this.db);
+                    
+                    console.log("Iniciando Cache Manual (IndexedDB)...");
+                    const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+
+                    request.onerror = (event) => {
+                        console.error("Erro ao abrir IndexedDB:", event.target.error);
+                        reject(event.target.error);
+                    };
+
+                    request.onsuccess = (event) => {
+                        this.db = event.target.result;
+                        console.log("Cache Manual (IndexedDB) aberto com sucesso.");
+                        resolve(this.db);
+                    };
+
+                    request.onupgradeneeded = (event) => {
+                        console.log("Atualizando schema do Cache Manual (IndexedDB)...");
+                        let db = event.target.result;
+                        if (!db.objectStoreNames.contains(this.STORE_ALUNOS)) {
+                            db.createObjectStore(this.STORE_ALUNOS, { keyPath: 'id' });
+                        }
+                        if (!db.objectStoreNames.contains(this.STORE_TURMAS)) {
+                            db.createObjectStore(this.STORE_TURMAS, { keyPath: 'id' });
+                        }
+                    };
+                });
+            },
+
+            writeData: function(storeName, data) {
+                return new Promise((resolve, reject) => {
+                    if (!this.db) return reject("DB não inicializado");
+                    
+                    const transaction = this.db.transaction([storeName], 'readwrite');
+                    const store = transaction.objectStore(storeName);
+                    
+                    transaction.onerror = (event) => reject(event.target.error);
+                    transaction.oncomplete = (event) => resolve(true);
+                    
+                    store.clear(); // Limpa dados antigos
+                    data.forEach(item => store.put(item)); // Adiciona dados novos
+                });
+            },
+
+            readData: function(storeName) {
+                return new Promise((resolve, reject) => {
+                    if (!this.db) return reject("DB não inicializado");
+
+                    const transaction = this.db.transaction([storeName], 'readonly');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.getAll();
+
+                    request.onerror = (event) => reject(event.target.error);
+                    request.onsuccess = (event) => resolve(event.target.result);
+                });
+            }
+        };
+        // ===== FIM DA MODIFICAÇÃO =====
+
         // =================================================================
         // *** 1. PREENCHA AQUI: Cole a sua configuração do Firebase ***
         // =================================================================
@@ -561,7 +630,7 @@
             });
         };
 
-        // ===== Bloco de inicialização robusto para Offline (VERSÃO persistentLocalCache) =====
+        // ===== Bloco de inicialização robusto para Offline (VERSÃO CACHE MANUAL) =====
         
         let listenersIniciados = false; 
         let unsubscribeAlunos = null; 
@@ -581,7 +650,7 @@
                 await setPersistence(auth, browserLocalPersistence);
                 console.log("Persistência local do Auth definida.");
 
-                // 2. SEGUNDO: Inicializamos o FIRESTORE com cache local
+                // 2. SEGUNDO: Inicializamos o FIRESTORE (ainda confiando no cache dele)
                 try {
                      db = initializeFirestore(app, {
                          cache: persistentLocalCache()
@@ -592,8 +661,12 @@
                     window.showToast("Erro ao iniciar DB local.", "error");
                 }
 
-                // 3. TERCEIRO: Ativamos o listener do AUTH
-                onAuthStateChanged(auth, (user) => { 
+                // 3. TERCEIRO: Inicializamos o NOSSO CACHE MANUAL
+                await window.dbCacheManager.initDB();
+
+                // 4. QUARTO: Ativamos o listener do AUTH
+                // ===== MODIFICAÇÃO: A função de callback agora é ASYNC =====
+                onAuthStateChanged(auth, async (user) => { 
                      console.log("onAuthStateChanged (após persistência):", user ? user.email : 'Nenhum utilizador'); 
                      try { 
                         if (user) { 
@@ -607,22 +680,38 @@
                             if (appContainer) appContainer.style.display = 'block'; 
                             if (contentContainer) contentContainer.style.display = 'block';
                             
-                            // 4. QUARTO: Iniciamos os listeners do FIRESTORE
-                            if (db && !listenersIniciados) {
+                            // 5. QUINTO: CARREGAR DADOS DO CACHE MANUAL IMEDIATAMENTE
+                            try {
+                                console.log("Carregando dados do Cache Manual...");
+                                const turmasData = await window.dbCacheManager.readData('turmas');
+                                const alunosData = await window.dbCacheManager.readData('alunos');
+
+                                if (turmasData && turmasData.length > 0) {
+                                    window.appState.turmasData = turmasData;
+                                    console.log(`Carregadas ${turmasData.length} turmas do cache.`);
+                                }
+                                if (alunosData && alunosData.length > 0) {
+                                    window.appState.alunosData = alunosData;
+                                    console.log(`Carregados ${alunosData.length} alunos do cache.`);
+                                }
                                 
-                                // ===== MODIFICAÇÃO (ÚLTIMA TENTATIVA): Atraso para o cache =====
-                                // Damos 1.5s para o persistentLocalCache obter o "lock"
-                                // do IndexedDB antes de chamarmos os listeners de dados.
-                                console.log("Aguardando 1.5s para o cache do DB iniciar...");
-                                setTimeout(() => {
-                                    console.log("Iniciando listeners (após atraso).");
-                                    iniciarListenersFirestore(); 
-                                    listenersIniciados = true;
-                                }, 1500); // 1.5 segundos de atraso
-                                
+                                // Renderiza o que quer que tenhamos (mesmo se for vazio)
+                                window.renderAlunos();
+                                window.renderTurmas();
+
+                            } catch (cacheError) {
+                                console.error("Erro ao ler do Cache Manual:", cacheError);
+                                window.showToast('Erro ao ler cache local.', 'error');
+                            }
+                            
+                            // 6. SEXTO: Tentar ligar ao Firestore para dados "ao vivo"
+                            // (Isto irá atualizar o ecrã E o cache manual se estiver online)
+                            if (db && !listenersIniciados) { 
+                                iniciarListenersFirestore(); 
+                                listenersIniciados = true;
                             } else if (!db) {
                                 console.error("DB não está definido, listeners do Firestore não podem iniciar.");
-                                document.getElementById('alunosList').innerHTML = "<div class='empty-state'><h3 style='color:red;'>Erro!</h3><p>A base de dados não pôde ser carregada.</p></div>";
+                                // Não mostramos erro, pois os dados do cache podem ter sido carregados
                             }
                             
                             updateAdminUI(); 
@@ -660,43 +749,37 @@
             }
         }
         
-        // 5. Chamamos a nova função para iniciar o processo
+        // 7. Chamamos a nova função para iniciar o processo
         iniciarServicosEAutenticacao();
         
         // ===== FIM DA MODIFICAÇÃO =====
         
         
         // --- Funções Admin, FAB e Seleção Múltipla ---
-        // ===== MODIFICAÇÃO 3: UI reage ao 'isAdmin' (baseado no e-mail) =====
         function updateAdminUI() {
              const isAdmin = window.appState.isAdmin;
              const isAlunosTab = window.appState.currentTab === 'alunos';
              const isSelectionMode = window.appState.isSelectionModeActive;
 
-             // Botões Admin (Backup/Import/Select)
              ['backupBtn', 'importBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = isAdmin ? 'flex' : 'none'; });
              
              const selectBtn = document.getElementById('selectBtn');
              if (selectBtn) {
                  selectBtn.style.display = (isAdmin && isAlunosTab) ? 'flex' : 'none';
-                 // Reseta o botão de seleção se sair do modo admin
                  if (!isAdmin && isSelectionMode) {
-                     window.toggleSelectionMode(); // Cancela o modo de seleção
+                     window.toggleSelectionMode(); 
                  }
              }
              
-             // Botão Sair
              const logoutButton = document.getElementById('logoutBtn'); 
              if (logoutButton) { 
-                 logoutButton.style.display = 'flex'; // Sempre visível quando logado
+                 logoutButton.style.display = 'flex'; 
                  logoutButton.title = `Logado como: ${window.appState.userEmail}\n(${isAdmin ? 'Admin' : 'User'})\nClique para Sair`;
              }
              
-             // FAB Adicionar
              const fabBtn = document.getElementById('fabBtn'); 
              if (fabBtn) fabBtn.style.display = (isAdmin && !isSelectionMode) ? 'flex' : 'none';
              
-             // FAB Excluir
              const deleteBtn = document.getElementById('deleteSelectedBtn'); 
              if (deleteBtn) { 
                  if(isAdmin && isSelectionMode) updateDeleteButtonCount(); 
@@ -727,7 +810,6 @@
         }
         
         window.toggleAlunoSelection = (alunoId) => { 
-            // Só permite selecionar se for admin
             if (!window.appState.isAdmin) {
                 window.showAlunoDetail(alunoId);
                 return;
@@ -1054,11 +1136,9 @@
              });
              
              if (window.appState.filteredAlunos.length === 0) { 
-                 // Se os dados já carregaram (têm 175) mas o filtro deu 0, mostra "Nenhum aluno encontrado"
                  if (window.appState.alunosData.length > 0) {
                     list.innerHTML = `<div class="empty-state"><span class="material-icons-outlined">people_outline</span><h3>Nenhum Aluno</h3><p>Verifique os filtros ou adicione novos alunos.</p></div>`; 
                  } else {
-                    // Mantém o "A carregar..." se os dados ainda não chegaram
                     list.innerHTML = `<div class="loading">A carregar alunos...</div>`;
                  }
                  return; 
@@ -1149,22 +1229,41 @@
         }
 
         // --- Listeners do Firestore ---
+        // ===== MODIFICAÇÃO: Esta função agora atualiza o CACHE MANUAL =====
         function iniciarListenersFirestore() {
             if (!db) {
                 console.error("iniciarListenersFirestore falhou: 'db' não está definido.");
                 return;
             }
-            console.log("Iniciando listeners do Firestore...");
+            console.log("Iniciando listeners do Firestore (para dados ao vivo e atualização do cache)...");
+            
+            // Verifica se está online ANTES de tentar ligar.
+            // Se estiver offline, os dados do cache já foram carregados e não fazemos nada.
+            if (!navigator.onLine) {
+                console.log("Offline. Listeners do Firestore não serão ligados.");
+                window.showToast("Está offline. A exibir dados locais.", "success");
+                return;
+            }
+
             try {
                 // Listener de Turmas
                 const qTurmas = query(collection(db, 'turmas'), orderBy('nome'));
                 unsubscribeTurmas = onSnapshot(qTurmas, (snapshot) => { 
-                    console.log("Recebidos dados de TURMAS:", snapshot.docs.length);
-                    window.appState.turmasData = snapshot.docs.map(d => ({ id: d.id, ...d.data() })); 
-                    const currentTurmaValue = document.getElementById('alunoTurma')?.value;
-                    populateTurmaSelect('alunoTurma', currentTurmaValue); 
+                    console.log("Recebidos dados de TURMAS (ao vivo):", snapshot.docs.length);
+                    const turmasData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    
+                    window.appState.turmasData = turmasData; 
+                    populateTurmaSelect('alunoTurma', document.getElementById('alunoTurma')?.value); 
+                    
+                    // Atualiza o ecrã
                     if (window.appState.currentTab === 'turmas') window.renderTurmas(); 
                     else if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
+
+                    // Salva no cache manual
+                    window.dbCacheManager.writeData('turmas', turmasData)
+                        .then(() => console.log(`Cache manual de ${turmasData.length} turmas ATUALIZADO.`))
+                        .catch(err => console.error("Erro ao salvar turmas no cache manual:", err));
+
                 }, (e) => { 
                     console.error("Erro no listener de TURMAS:", e); 
                     window.showToast('Erro ao carregar Turmas.', 'error'); 
@@ -1183,10 +1282,20 @@
                 // Listener de Alunos
                 const qAlunos = query(collection(db, 'alunos'), orderBy('nome'));
                 unsubscribeAlunos = onSnapshot(qAlunos, (snapshot) => { 
-                    console.log("Recebidos dados de ALUNOS:", snapshot.docs.length);
-                    window.appState.alunosData = snapshot.docs.map(d => ({ id: d.id, ...d.data() })); 
+                    console.log("Recebidos dados de ALUNOS (ao vivo):", snapshot.docs.length);
+                    const alunosData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                    window.appState.alunosData = alunosData; 
+
+                    // Atualiza o ecrã
                     if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
                     window.renderTurmas(); // Sempre atualiza stats das turmas
+
+                    // Salva no cache manual
+                    window.dbCacheManager.writeData('alunos', alunosData)
+                        .then(() => console.log(`Cache manual de ${alunosData.length} alunos ATUALIZADO.`))
+                        .catch(err => console.error("Erro ao salvar alunos no cache manual:", err));
+
                 }, (e) => { 
                     console.error("Erro no listener de ALUNOS:", e); 
                     window.showToast('Erro ao carregar Alunos.', 'error'); 
