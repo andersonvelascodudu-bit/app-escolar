@@ -536,6 +536,9 @@
             const pass = document.getElementById('loginPassword').value;
             
             try {
+                // ===== MODIFICAÇÃO: Definir persistência ANTES de logar =====
+                await setPersistence(auth, browserLocalPersistence);
+                // ==========================================================
                 await signInWithEmailAndPassword(auth, email, pass);
                 // O 'onAuthStateChanged' abaixo tratará de mostrar o app
             } catch (error) {
