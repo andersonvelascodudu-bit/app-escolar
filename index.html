@@ -1008,7 +1008,7 @@
             } 
         }
 
-        // ===== ITEM 1 (MELHORIA): Função Helper para formatar telefones (MODIFICADA) =====
+        // ===== ITEM 2 (MELHORIA): Função Helper para formatar telefones (MODIFICADA) =====
         function formatarTelefone(tel) {
             if (!tel) return 'N/D';
             const telLimpo = tel.replace(/\D/g, ''); // Remove todos os não-dígitos
@@ -1019,15 +1019,14 @@
             // Assume DDI 55 (Brasil) se não estiver presente
             const telDDI = telLimpo.startsWith('55') ? telLimpo : `55${telLimpo}`;
 
-            // Estilo para os ícones (preto e branco como pedido)
-            const iconStyle = `font-size: 16px; color: var(--color-text); vertical-align: middle; margin-left: 10px; text-decoration: none; opacity: 0.7;`;
+            // Estilo para o TEXTO "WhatsApp"
+            const linkStyle = `font-size: 11px; font-weight: 600; color: var(--color-secondary-btn-text); vertical-align: middle; margin-left: 10px; text-decoration: none; opacity: 0.9; background: var(--color-input-bg); border: 1px solid var(--color-border); padding: 2px 6px; border-radius: 4px;`;
             
             let html = `<span>${escapeHTML(tel)}</span>`;
-            // Ícone WhatsApp
-            html += `<a href="https://wa.me/${telDDI}" target="_blank" style="${iconStyle}" onclick="event.stopPropagation();" title="WhatsApp">
-                         <span class="material-icons-outlined" style="font-size: 16px;">whatsapp</span>
+            // Texto WhatsApp
+            html += `<a href="https://wa.me/${telDDI}" target="_blank" style="${linkStyle}" onclick="event.stopPropagation();" title="WhatsApp">
+                         WhatsApp
                      </a>`;
-            // Ícone Ligar (REMOVIDO)
             
             return html;
         }
@@ -1039,7 +1038,7 @@
             window.appState.currentAlunoIndex = window.appState.filteredAlunos.findIndex(a => a.id === alunoId); 
             const body = document.getElementById('alunoDetailBody'); if(!body) return; 
             
-            // ===== ITEM 1 (MELHORIA): Modificação na função cDr para usar o formatarTelefone =====
+            // Função cDr (usando a formatarTelefone atualizada)
             const cDr = (l, v, h=false) => { 
                 const valStr = String(v || '').trim(); 
                 if (valStr === '' || valStr === 'N/D') return ''; 
@@ -1047,7 +1046,7 @@
                 let vc = 'detail-value'; 
                 let valHtml = '';
                 
-                // Verificação de Telefone (Item 1)
+                // Verificação de Telefone (Item 2)
                 if (l.toLowerCase().includes('tel') || l.toLowerCase().includes('cont.')) {
                     valHtml = formatarTelefone(v); // Use a nova helper
                     h = true; // Marca como HTML
@@ -1061,13 +1060,13 @@
                 return `<div class="detail-row"><div class="detail-label">${escapeHTML(l)}</div><div class="${vc}">${valHtml}</div></div>`; 
             }; 
             
-            // ===== ITEM 2 (MELHORIA): Lógica do Avatar de Detalhe (Offline e Largura Total) (MODIFICADO) =====
+            // ===== ITEM 1 (MELHORIA): Lógica do Avatar de Detalhe (Altura 200px) (MODIFICADO) =====
             let av = ''; 
             const isOnline = navigator.onLine;
-            // Estilo para o container de placeholder (Item 2)
-            const fullWidthPlaceholderStyle = `width: 100%; height: 150px; border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600;`;
-            // Estilo para a imagem (Item 2)
-            const fullWidthAvatarStyle = `width: 100%; height: 150px; /* <-- MODIFICADO */ object-fit: cover; border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: block; border: 3px solid var(--color-border);`;
+            // Estilo para o container de placeholder
+            const fullWidthPlaceholderStyle = `width: 100%; height: 200px; /* <-- MODIFICADO */ border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600;`;
+            // Estilo para a imagem
+            const fullWidthAvatarStyle = `width: 100%; height: 200px; /* <-- MODIFICADO */ object-fit: cover; border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: block; border: 3px solid var(--color-border);`;
 
             if(aluno.status === 'Transferido'){ 
                 av = `<div class="avatar avatar-placeholder-transferido" style="${fullWidthPlaceholderStyle}">Transferido</div>`;
@@ -1076,7 +1075,7 @@
                 av = `<img src="${escapeHTML(convertGoogleDriveLink(aluno.fotoURL))}" style="${fullWidthAvatarStyle}" alt="Foto" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"> 
                       <div class="avatar avatar-placeholder-semfoto" style="${fullWidthPlaceholderStyle}; display: none;">Sem Foto</div>`;
             } 
-            else if (aluno.fotoURL && !isOnline) { // Item 1 (anterior)
+            else if (aluno.fotoURL && !isOnline) { 
                 av = `<div class="avatar avatar-placeholder-semfoto" style="${fullWidthPlaceholderStyle}">Foto Offline</div>`;
             }
             else { 
@@ -1090,7 +1089,7 @@
             const sDados = `${cDr('Nome',aluno.nome)}${cDr('Matrícula',aluno.matricula)}${cDr('Nº Diário',aluno.diario)}${cDr('Turma',aluno.turma)}${cDr('Status',aluno.status)}${cDr('Nasc.',`${formatDate(aluno.nascimento)} ${calculateAge(aluno.nascimento)}`)}${cDr('CPF',aluno.cpf)}${cDr('Tel Aluno',aluno.telefone)}`;
             const sResp = `${cDr('Resp 1',aluno.responsavel1Nome)}${cDr('Par. 1',aluno.responsavel1Tipo)}${cDr('Cont. 1',aluno.responsavel1Tel)}${cDr('Resp 2',aluno.responsavel2Nome)}${cDr('Par. 2',aluno.responsavel2Tipo)}${cDr('Cont. 2',aluno.responsavel2Tel)}`;
             const sInfo = `${cDr('PCD?',aluno.pcd?'Sim':'Não')}${cDr('Prova Dif?',aluno.provaDif?'Sim':'Não')}${cDr('Monitorias',aluno.monitorias)}${cDr('Projetos',aluno.projetos)}${cDr('Obs 1',aluno.obs1)}`;
-            const sDisc = `${cDr('Dispensas',aluno.dispensas)}${cDr('Notificações',aluno.notificacoes)}${cDr('Advertências',aluno.advertencias)}${cDr('Suspensões',aluno.suspensoes)}${cDr('Obs 2',aluno.obs2)}`;
+            const sDisc = `${cDr('Dispensas',aluno.dispensas)}${cDr('Notificações',aluno.notificacoes)}${cDr('Advertências',aluno.advertencias)}${cDr('Suspensões',aluno.suspensons)}${cDr('Obs 2',aluno.obs2)}`;
             
             body.innerHTML = `${av}${navHtml}${editButtonHtml}
                 ${sDados ? `<div class="detail-section"><h3>Dados Pessoais</h3>${sDados}</div>` : ''}
@@ -1156,7 +1155,6 @@
             const turma = window.appState.turmasData.find(t => t.id === turmaId); if (!turma) return window.showToast('Turma não encontrada.', 'error'); 
             window.appState.currentTurmaIndex = window.appState.filteredTurmas.findIndex(t => t.id === turmaId); 
             
-            // ===== ITEM 4 (Anterior): Calcular Stats da Turma =====
             const alunosDaTurma = window.appState.alunosData.filter(a => a.turma === turma.nome);
             const aM = alunosDaTurma.filter(a => a.status === 'Matriculado').length;
             const aT = alunosDaTurma.filter(a => a.status === 'Transferido').length;
@@ -1167,7 +1165,6 @@
                 alunosDaTurma.sort((a, b) => (a.nome || '').localeCompare(b.nome || '')); 
                 alunosHTML = alunosDaTurma.map(aluno => { 
                     let avatarHTML = ''; 
-                    // ===== ITEM 1 (Anterior): Lógica do Avatar da Lista de Turma (Offline) =====
                     const isOnline = navigator.onLine;
                     if (aluno.status === 'Transferido') { 
                         avatarHTML = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; 
@@ -1179,8 +1176,7 @@
                         avatarHTML = `<div class="avatar avatar-placeholder-semfoto" style="font-size: 9px;">S/ Foto</div>`; 
                     } 
                     
-                    // ===== ITEM 3 (MELHORIA): Layout do Card (MODIFICADO) =====
-                    // O div "card-header" foi removido para permitir o flex-box do .card
+                    // Layout do Card (Modificado na etapa anterior)
                     return `<div class="card" style="margin-bottom: 8px; cursor: pointer;" onclick="window.closeModal('turmaDetailModal'); window.showAlunoDetail('${aluno.id}')">
                                 ${avatarHTML} 
                                 <div class="card-info">
@@ -1198,7 +1194,6 @@
             
             const navHtml = `<div class="modal-nav"><button class="btn btn-secondary" onclick="window.showPrevTurma()" ${window.appState.currentTurmaIndex <= 0 ? 'disabled' : ''}>← Ant</button><button class="btn btn-secondary" onclick="window.showNextTurma()" ${window.appState.currentTurmaIndex >= window.appState.filteredTurmas.length - 1 ? 'disabled' : ''}>Próx →</button></div>`;
             
-            // ===== ITEM 4 (Anterior): Adicionar Stats ao Bloco de Informações =====
             const sInfo = `${cDr('Nome',turma.nome)}
                          ${cDr('Série',turma.serie)}
                          ${cDr('Matriculados', aM)}
@@ -1244,18 +1239,17 @@
              try { 
                  list.innerHTML = window.appState.filteredAlunos.map(a => { 
                     
-                    // ===== ITEM 1 (Anterior): Lógica do Avatar da Lista (Offline) =====
-                     let avatar = ''; 
-                     const isOnline = navigator.onLine; // Verifica o estado da rede
+                    let avatar = ''; 
+                     const isOnline = navigator.onLine; 
                      
                      if (a.status === 'Transferido') { 
                          avatar = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; 
                      } else if (a.fotoURL && isOnline) { 
                          avatar = `<img src="${escapeHTML(convertGoogleDriveLink(a.fotoURL))}" class="avatar" alt="Foto" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                    <div class="avatar avatar-placeholder-semfoto" style="display:none;">S/ Foto</div>`; 
-                     } else if (a.fotoURL && !isOnline) { // Se tem foto mas está offline
+                     } else if (a.fotoURL && !isOnline) { 
                          avatar = `<div class="avatar avatar-placeholder-semfoto" style="font-size: 10px; line-height: 1.2;">Foto<br>Offline</div>`;
-                     } else { // Se não tem foto
+                     } else { 
                          avatar = `<div class="avatar avatar-placeholder-semfoto">S/ Foto</div>`; 
                      } 
                      
@@ -1308,7 +1302,6 @@
             const alunosGlobais = window.appState.alunosData || []; 
             
             list.innerHTML = window.appState.filteredTurmas.map(t => { 
-                // ===== ITEM 4 (Anterior): Apenas o 'aM' é necessário aqui =====
                 const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); 
                 const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; 
                 
