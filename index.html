@@ -423,23 +423,26 @@
         console.log("Script principal iniciado.");
 
         // Imports Firebase (Corrigidos)
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        // ===== MODIFICAÇÃO: Versão atualizada de 10.7.1 para 10.12.3 =====
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js';
         
         import { 
-            initializeFirestore, persistentLocalCache, collection, onSnapshot, 
+            initializeFirestore, 
+            persistentLocalCache, 
+            collection, onSnapshot, 
             updateDoc, deleteDoc, doc, addDoc, setDoc, query, orderBy, writeBatch 
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js';
         
         import { 
             getAuth, 
             signInWithEmailAndPassword,
             signOut, 
             onAuthStateChanged,
-            setPersistence, // <-- MODIFICAÇÃO: Importado para persistência
-            browserLocalPersistence // <-- MODIFICAÇÃO: Importado para persistência
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+            setPersistence, 
+            browserLocalPersistence 
+        } from 'https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js';
         
-        console.log("Módulos Firebase importados.");
+        console.log("Módulos Firebase importados (v10.12.3).");
 
         // =================================================================
         // *** 1. PREENCHA AQUI: Cole a sua configuração do Firebase ***
@@ -455,14 +458,12 @@
         // =================================================================
         
         // Init Firebase & Serviços
-        // ===== MODIFICAÇÃO: 'db' será definido mais tarde =====
         let app, db, auth;
         try {
             if (firebaseConfig.apiKey.startsWith("AIzaSy...")) {
                  throw new Error("Configuração do Firebase não preenchida (ainda com placeholder).");
             }
             app = initializeApp(firebaseConfig);
-            // ===== MODIFICAÇÃO: Inicialize APENAS app e auth =====
             auth = getAuth(app); 
             console.log("Firebase App e Auth inicializados.");
         
@@ -476,14 +477,13 @@
 
         // Estado Global
         window.appState = {
-            isAdmin: false, // Controlado pelo login
+            isAdmin: false, 
             currentTab: 'alunos', currentFilter: 'Todos', 
             editingAlunoId: null, editingTurmaId: null, turmasData: [], alunosData: [], 
             searchQuery: '', 
             
             // =================================================================
             // *** 2. PREENCHA AQUI: Lista de emails que são ADMINS ***
-            // (Utilizadores normais não precisam de estar nesta lista)
             // =================================================================
             adminEmails: [
                 'admin@nata.br', // <-- E-mail do Admin
@@ -532,7 +532,7 @@
         const loginButton = document.getElementById('loginButton');
         const authError = document.getElementById('authError');
         const appContainer = document.getElementById('appContainer'); 
-        const contentContainer = document.getElementById('contentContainer'); // <-- O DIV DO BUG
+        const contentContainer = document.getElementById('contentContainer'); 
 
         window.handleLogin = async (event) => {
             event.preventDefault();
@@ -541,9 +541,6 @@
             const pass = document.getElementById('loginPassword').value;
             
             try {
-                // ===== MODIFICAÇÃO: A persistência foi movida para a INICIALIZAÇÃO =====
-                // Não é mais necessário "await setPersistence" aqui.
-                
                 await signInWithEmailAndPassword(auth, email, pass);
                 // O 'onAuthStateChanged' abaixo tratará de mostrar o app
             } catch (error) {
@@ -565,7 +562,7 @@
             });
         };
 
-        // ===== MODIFICAÇÃO: Bloco de inicialização robusto para Offline =====
+        // ===== Bloco de inicialização robusto para Offline (VERSÃO persistentLocalCache) =====
         
         let listenersIniciados = false; 
         let unsubscribeAlunos = null; 
@@ -574,7 +571,6 @@
         // Esta função agora controla a inicialização de TODOS os serviços
         async function iniciarServicosEAutenticacao() {
             
-            // Se a inicialização do auth falhou no passo anterior, pare.
             if (!auth) {
                 console.error("Auth não foi inicializado. A app não pode continuar.");
                 document.getElementById('authError').textContent = "Erro crítico ao carregar Auth.";
@@ -587,7 +583,7 @@
                 console.log("Persistência local do Auth definida.");
 
                 // 2. SEGUNDO: Inicializamos o FIRESTORE com cache local
-                // (Usamos a variável 'db' global definida no topo)
+                // Esta é a forma correta do v9
                 try {
                      db = initializeFirestore(app, {
                          cache: persistentLocalCache()
@@ -596,11 +592,9 @@
                 } catch (dbError) {
                     console.error("ERRO AO INICIAR FIRESTORE (DB):", dbError);
                     window.showToast("Erro ao iniciar DB local.", "error");
-                    // Nota: Mesmo que o DB falhe, o Auth pode continuar.
                 }
 
                 // 3. TERCEIRO: Ativamos o listener do AUTH
-                // Neste ponto, ele JÁ SABE que tem de ler do cache local.
                 onAuthStateChanged(auth, (user) => { 
                      console.log("onAuthStateChanged (após persistência):", user ? user.email : 'Nenhum utilizador'); 
                      try { 
@@ -616,9 +610,8 @@
                             if (contentContainer) contentContainer.style.display = 'block';
                             
                             // 4. QUARTO: Iniciamos os listeners do FIRESTORE
-                            // Apenas se o 'db' foi inicializado com sucesso
                             if (db && !listenersIniciados) { 
-                                iniciarListenersFirestore(); // Esta função usa a variável global 'db'
+                                iniciarListenersFirestore(); 
                                 listenersIniciados = true;
                             } else if (!db) {
                                 console.error("DB não está definido, listeners do Firestore não podem iniciar.");
@@ -1150,7 +1143,6 @@
 
         // --- Listeners do Firestore ---
         function iniciarListenersFirestore() {
-            // ===== MODIFICAÇÃO: A variável 'db' é global e já está definida =====
             if (!db) {
                 console.error("iniciarListenersFirestore falhou: 'db' não está definido.");
                 return;
@@ -1225,6 +1217,5 @@
         console.log("Script principal finalizado (aguardando Auth state).");
 
     </script>
-
-    </body>
+</body>
 </html>
