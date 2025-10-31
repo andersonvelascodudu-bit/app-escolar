@@ -276,7 +276,10 @@
         .detail-label { width: 35%; color: var(--color-secondary); font-size: 12px; flex-shrink: 0; }
         .detail-value { flex: 1; font-weight: 500; font-size: 14px; color: var(--color-text); white-space: pre-wrap; word-break: break-word; }
         .detail-text-area { padding: 8px; background: var(--color-input-bg); border-radius: 6px; font-size: 13px; white-space: pre-wrap; min-height: 40px; border: 1px solid var(--color-border); margin-top: 5px; }
-        .detail-avatar { width: 100px; height: 100px; border-radius: var(--avatar-border-radius); object-fit: cover; margin: 0 auto 15px; display: block; border: 3px solid var(--color-border); }
+        
+        /* ===== ITEM 2: Estilo da Imagem de Detalhe (removido daqui) ===== */
+        /* .detail-avatar { width: 100px; height: 100px; ... } */
+        
         .turma-aluno-list .card { padding: 10px; margin-bottom: 8px; cursor: pointer; }
         .turma-aluno-list .avatar, .turma-aluno-list .avatar-placeholder { width: 35px; height: 35px; font-size: 9px; }
         .turma-aluno-list .avatar-placeholder { font-size: 14px; }
@@ -443,7 +446,7 @@
         
         console.log("Módulos Firebase importados (v10.12.3).");
 
-        // ===== MODIFICAÇÃO: Gestor de Cache Manual (IndexedDB) =====
+        // ===== Gestor de Cache Manual (IndexedDB) =====
         window.dbCacheManager = {
             db: null,
             DB_NAME: 'NataCacheManual',
@@ -510,7 +513,7 @@
                 });
             }
         };
-        // ===== FIM DA MODIFICAÇÃO =====
+        // ===== FIM DO GESTOR DE CACHE =====
 
         // =================================================================
         // *** 1. PREENCHA AQUI: Cole a sua configuração do Firebase ***
@@ -665,7 +668,6 @@
                 await window.dbCacheManager.initDB();
 
                 // 4. QUARTO: Ativamos o listener do AUTH
-                // ===== MODIFICAÇÃO: A função de callback agora é ASYNC =====
                 onAuthStateChanged(auth, async (user) => { 
                      console.log("onAuthStateChanged (após persistência):", user ? user.email : 'Nenhum utilizador'); 
                      try { 
@@ -705,13 +707,11 @@
                             }
                             
                             // 6. SEXTO: Tentar ligar ao Firestore para dados "ao vivo"
-                            // (Isto irá atualizar o ecrã E o cache manual se estiver online)
                             if (db && !listenersIniciados) { 
                                 iniciarListenersFirestore(); 
                                 listenersIniciados = true;
                             } else if (!db) {
                                 console.error("DB não está definido, listeners do Firestore não podem iniciar.");
-                                // Não mostramos erro, pois os dados do cache podem ter sido carregados
                             }
                             
                             updateAdminUI(); 
@@ -994,6 +994,33 @@
                 finally { if(s)s.classList.remove('active'); } 
             } 
         }
+
+        // ===== ITEM 3: Nova Função Helper para formatar telefones =====
+        function formatarTelefone(tel) {
+            if (!tel) return 'N/D';
+            const telLimpo = tel.replace(/\D/g, ''); // Remove todos os não-dígitos
+            
+            // Se não for um número válido, apenas exibe o texto
+            if (telLimpo.length < 10) return escapeHTML(tel); 
+            
+            // Assume DDI 55 (Brasil) se não estiver presente
+            const telDDI = telLimpo.startsWith('55') ? telLimpo : `55${telLimpo}`;
+
+            // Estilo para os ícones (preto e branco como pedido)
+            const iconStyle = `font-size: 16px; color: var(--color-text); vertical-align: middle; margin-left: 10px; text-decoration: none; opacity: 0.7;`;
+            
+            let html = `<span>${escapeHTML(tel)}</span>`;
+            // Ícone WhatsApp
+            html += `<a href="https://wa.me/${telDDI}" target="_blank" style="${iconStyle}" onclick="event.stopPropagation();" title="WhatsApp">
+                         <span class="material-icons-outlined" style="font-size: 16px;">whatsapp</span>
+                     </a>`;
+            // Ícone Ligar
+            html += `<a href="tel:+${telDDI}" style="${iconStyle}" onclick="event.stopPropagation();" title="Ligar">
+                         <span class="material-icons-outlined" style="font-size: 16px;">call</span>
+                     </a>`;
+            return html;
+        }
+
         window.showAlunoDetail = (alunoId, skipAnimation = false) => { 
             if (window.appState.isSelectionModeActive) return; 
             const aluno = window.appState.alunosData.find(a => a.id === alunoId); 
@@ -1001,14 +1028,50 @@
             window.appState.currentAlunoIndex = window.appState.filteredAlunos.findIndex(a => a.id === alunoId); 
             const body = document.getElementById('alunoDetailBody'); if(!body) return; 
             
-            const cDr = (l, v, h=false) => { const valStr = String(v || '').trim(); if (valStr === '' || valStr === 'N/D') return ''; let vc = 'detail-value'; if (valStr.length > 100 || valStr.includes('\n') || l.toLowerCase().includes('obs')) { vc = 'detail-text-area'; } const valHtml = h ? v : escapeHTML(valStr).replace(/\n/g, '<br>'); return `<div class="detail-row"><div class="detail-label">${escapeHTML(l)}</div><div class="${vc}">${valHtml}</div></div>`; }; 
+            // ===== ITEM 3: Modificação na função cDr para usar o formatarTelefone =====
+            const cDr = (l, v, h=false) => { 
+                const valStr = String(v || '').trim(); 
+                if (valStr === '' || valStr === 'N/D') return ''; 
+                
+                let vc = 'detail-value'; 
+                let valHtml = '';
+                
+                // Verificação de Telefone (Item 3)
+                if (l.toLowerCase().includes('tel') || l.toLowerCase().includes('cont.')) {
+                    valHtml = formatarTelefone(v); // Use a nova helper
+                    h = true; // Marca como HTML
+                } else if (valStr.length > 100 || valStr.includes('\n') || l.toLowerCase().includes('obs')) {
+                    vc = 'detail-text-area'; 
+                    valHtml = escapeHTML(valStr).replace(/\n/g, '<br>');
+                } else {
+                    valHtml = h ? v : escapeHTML(valStr);
+                }
+
+                return `<div class="detail-row"><div class="detail-label">${escapeHTML(l)}</div><div class="${vc}">${valHtml}</div></div>`; 
+            }; 
             
+            // ===== ITEM 1 & 2: Lógica do Avatar de Detalhe (Offline e Largura Total) =====
             let av = ''; 
-            if(aluno.status === 'Transferido'){ av = `<div class="avatar avatar-placeholder-transferido" style="width:100px; height: 100px; border-radius: var(--avatar-border-radius); margin: 0 auto 15px;">Transferido</div>`;} 
-            else if (aluno.fotoURL) { av = `<img src="${escapeHTML(convertGoogleDriveLink(aluno.fotoURL))}" class="detail-avatar" alt="Foto" onerror="this.src=''; this.style.display='none'; this.nextElementSibling.style.display='block';"> <div class="avatar avatar-placeholder-semfoto" style="width:100px; height: 100px; border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: none;">Sem Foto</div>`;} 
-            else { av = `<div class="avatar avatar-placeholder-semfoto" style="width:100px; height: 100px; border-radius: var(--avatar-border-radius); margin: 0 auto 15px;">Sem Foto</div>`; } 
+            const isOnline = navigator.onLine;
+            // Estilo para o container de placeholder (Item 2)
+            const fullWidthPlaceholderStyle = `width: 100%; height: 150px; border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600;`;
+            // Estilo para a imagem (Item 2)
+            const fullWidthAvatarStyle = `width: 100%; height: auto; max-height: 350px; object-fit: cover; border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: block; border: 3px solid var(--color-border);`;
+
+            if(aluno.status === 'Transferido'){ 
+                av = `<div class="avatar avatar-placeholder-transferido" style="${fullWidthPlaceholderStyle}">Transferido</div>`;
+            } 
+            else if (aluno.fotoURL && isOnline) { 
+                av = `<img src="${escapeHTML(convertGoogleDriveLink(aluno.fotoURL))}" style="${fullWidthAvatarStyle}" alt="Foto" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"> 
+                      <div class="avatar avatar-placeholder-semfoto" style="${fullWidthPlaceholderStyle}; display: none;">Sem Foto</div>`;
+            } 
+            else if (aluno.fotoURL && !isOnline) { // Item 1
+                av = `<div class="avatar avatar-placeholder-semfoto" style="${fullWidthPlaceholderStyle}">Foto Offline</div>`;
+            }
+            else { 
+                av = `<div class="avatar avatar-placeholder-semfoto" style="${fullWidthPlaceholderStyle}">Sem Foto</div>`; 
+            } 
             
-            // ===== MODIFICAÇÃO 3: Botão Editar só para Admins =====
             const editButtonHtml = window.appState.isAdmin ? `<button class="btn btn-primary" onclick="window.closeModal('alunoDetailModal'); window.openEditAlunoModal('${aluno.id}')" style="margin-bottom:20px;">Editar</button>` : '';
             
             const navHtml = `<div class="modal-nav"><button class="btn btn-secondary" onclick="window.showPrevAluno()" ${window.appState.currentAlunoIndex <= 0 ? 'disabled' : ''}>← Ant</button><button class="btn btn-secondary" onclick="window.showNextAluno()" ${window.appState.currentAlunoIndex >= window.appState.filteredAlunos.length - 1 ? 'disabled' : ''}>Próx →</button></div>`;
@@ -1081,15 +1144,30 @@
         window.showTurmaDetail = (turmaId, skipAnimation = false) => { 
             const turma = window.appState.turmasData.find(t => t.id === turmaId); if (!turma) return window.showToast('Turma não encontrada.', 'error'); 
             window.appState.currentTurmaIndex = window.appState.filteredTurmas.findIndex(t => t.id === turmaId); 
-            const alunosDaTurma = window.appState.alunosData.filter(a => a.turma === turma.nome); 
+            
+            // ===== ITEM 4: Calcular Stats da Turma =====
+            const alunosDaTurma = window.appState.alunosData.filter(a => a.turma === turma.nome);
+            const aM = alunosDaTurma.filter(a => a.status === 'Matriculado').length;
+            const aT = alunosDaTurma.filter(a => a.status === 'Transferido').length;
+            const aPCD = alunosDaTurma.filter(a => a.pcd === true).length;
+            
             let alunosHTML = `<div class="empty-state" style="padding: 20px 0;"><span class="material-icons-outlined">sentiment_dissatisfied</span><p>Nenhum aluno nesta turma.</p></div>`; 
             if (alunosDaTurma.length > 0) { 
                 alunosDaTurma.sort((a, b) => (a.nome || '').localeCompare(b.nome || '')); 
                 alunosHTML = alunosDaTurma.map(aluno => { 
                     let avatarHTML = ''; 
-                    if (aluno.status === 'Transferido') { avatarHTML = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; } 
-                    else if (aluno.fotoURL) { avatarHTML = `<img src="${escapeHTML(convertGoogleDriveLink(aluno.fotoURL))}" class="avatar" alt="Foto" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"> <div class="avatar avatar-placeholder-semfoto" style="display:none; font-size: 9px;">S/ Foto</div>`; } 
-                    else { avatarHTML = `<div class="avatar avatar-placeholder-semfoto" style="font-size: 9px;">S/ Foto</div>`; } 
+                    // ===== ITEM 1: Lógica do Avatar da Lista de Turma (Offline) =====
+                    const isOnline = navigator.onLine;
+                    if (aluno.status === 'Transferido') { 
+                        avatarHTML = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; 
+                    } else if (aluno.fotoURL && isOnline) { 
+                        avatarHTML = `<img src="${escapeHTML(convertGoogleDriveLink(aluno.fotoURL))}" class="avatar" alt="Foto" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"> <div class="avatar avatar-placeholder-semfoto" style="display:none; font-size: 9px;">S/ Foto</div>`; 
+                    } else if (aluno.fotoURL && !isOnline) {
+                         avatarHTML = `<div class="avatar avatar-placeholder-semfoto" style="font-size: 9px; line-height: 1.1;">Foto<br>Offline</div>`;
+                    } else { 
+                        avatarHTML = `<div class="avatar avatar-placeholder-semfoto" style="font-size: 9px;">S/ Foto</div>`; 
+                    } 
+                    
                     return `<div class="card" style="margin-bottom: 8px; cursor: pointer;" onclick="window.closeModal('turmaDetailModal'); window.showAlunoDetail('${aluno.id}')">
                                 <div class="card-header" style="margin-bottom: 0; gap: 10px;"> ${avatarHTML} 
                                     <div class="card-info">
@@ -1102,13 +1180,20 @@
                 }).join(''); 
             } 
             const body = document.getElementById('turmaDetailBody'); if(!body) return; 
-            const cDr = (l, v) => { const valStr = String(v || '').trim(); if (valStr === '') return ''; const valCls = l.toLowerCase()==='obs' ? 'detail-text-area' : 'detail-value'; return `<div class="detail-row"><div class="detail-label">${escapeHTML(l)}</div><div class="${valCls}">${escapeHTML(valStr).replace(/\n/g, '<br>')}</div></div>`; };
+            const cDr = (l, v) => { const valStr = String(v || '').trim(); if (valStr === '' || valStr === '0') return ''; const valCls = l.toLowerCase()==='obs' ? 'detail-text-area' : 'detail-value'; return `<div class="detail-row"><div class="detail-label">${escapeHTML(l)}</div><div class="${valCls}">${escapeHTML(valStr).replace(/\n/g, '<br>')}</div></div>`; };
             
-            // ===== MODIFICAÇÃO 3: Botão Editar só para Admins =====
             const editButtonHtml = window.appState.isAdmin ? `<button class="btn btn-primary" onclick="window.closeModal('turmaDetailModal'); window.openEditTurmaModal('${turma.id}')" style="margin-bottom:20px;">Editar</button>` : '';
             
             const navHtml = `<div class="modal-nav"><button class="btn btn-secondary" onclick="window.showPrevTurma()" ${window.appState.currentTurmaIndex <= 0 ? 'disabled' : ''}>← Ant</button><button class="btn btn-secondary" onclick="window.showNextTurma()" ${window.appState.currentTurmaIndex >= window.appState.filteredTurmas.length - 1 ? 'disabled' : ''}>Próx →</button></div>`;
-            const sInfo = `${cDr('Nome',turma.nome)}${cDr('Série',turma.serie)}${cDr('Obs',turma.obs)}`;
+            
+            // ===== ITEM 4: Adicionar Stats ao Bloco de Informações =====
+            const sInfo = `${cDr('Nome',turma.nome)}
+                         ${cDr('Série',turma.serie)}
+                         ${cDr('Matriculados', aM)}
+                         ${cDr('Transferidos', aT)}
+                         ${cDr('Alunos PCD', aPCD)}
+                         ${cDr('Obs',turma.obs)}`;
+                         
             body.innerHTML = `${navHtml}${editButtonHtml}
                 ${sInfo ? `<div class="detail-section"><h3>Informações</h3>${sInfo}</div>` : ''}
                 <div class="detail-section turma-aluno-list"><h3>Alunos (${alunosDaTurma.length})</h3>${alunosHTML}</div>`; 
@@ -1146,13 +1231,19 @@
              
              try { 
                  list.innerHTML = window.appState.filteredAlunos.map(a => { 
+                    
+                    // ===== ITEM 1: Lógica do Avatar da Lista (Offline) =====
                      let avatar = ''; 
+                     const isOnline = navigator.onLine; // Verifica o estado da rede
+                     
                      if (a.status === 'Transferido') { 
                          avatar = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; 
-                     } else if (a.fotoURL) { 
+                     } else if (a.fotoURL && isOnline) { 
                          avatar = `<img src="${escapeHTML(convertGoogleDriveLink(a.fotoURL))}" class="avatar" alt="Foto" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                    <div class="avatar avatar-placeholder-semfoto" style="display:none;">S/ Foto</div>`; 
-                     } else { 
+                     } else if (a.fotoURL && !isOnline) { // Se tem foto mas está offline
+                         avatar = `<div class="avatar avatar-placeholder-semfoto" style="font-size: 10px; line-height: 1.2;">Foto<br>Offline</div>`;
+                     } else { // Se não tem foto
                          avatar = `<div class="avatar avatar-placeholder-semfoto">S/ Foto</div>`; 
                      } 
                      
@@ -1160,7 +1251,6 @@
                      const cardCls = `card ${window.appState.isAdmin && window.appState.isSelectionModeActive ? 'selectable' : ''} ${isSel ? 'selected' : ''}`; 
                      const clickH = (window.appState.isAdmin && window.appState.isSelectionModeActive) ? `window.toggleAlunoSelection('${a.id}')` : `window.showAlunoDetail('${a.id}')`; 
                      
-                     // ===== MODIFICAÇÃO 3: Botão Editar só para Admins =====
                      const editButtonHtml = (window.appState.isAdmin && !window.appState.isSelectionModeActive) 
                         ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` 
                         : ''; 
@@ -1206,10 +1296,10 @@
             const alunosGlobais = window.appState.alunosData || []; 
             
             list.innerHTML = window.appState.filteredTurmas.map(t => { 
+                // ===== ITEM 4: Apenas o 'aM' é necessário aqui =====
                 const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); 
                 const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; 
                 
-                // ===== MODIFICAÇÃO 3: Botão Editar só para Admins =====
                 const editButtonHtml = window.appState.isAdmin 
                     ? `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar"><span class="material-icons-outlined">edit</span></button>` 
                     : '';
@@ -1237,7 +1327,6 @@
             }
             console.log("Iniciando listeners do Firestore (para dados ao vivo e atualização do cache)...");
             
-            // Verifica se está online ANTES de tentar ligar.
             // Se estiver offline, os dados do cache já foram carregados e não fazemos nada.
             if (!navigator.onLine) {
                 console.log("Offline. Listeners do Firestore não serão ligados.");
