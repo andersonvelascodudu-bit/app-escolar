@@ -426,7 +426,10 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         
         import { 
-            initializeFirestore, persistentLocalCache, collection, onSnapshot, 
+            initializeFirestore, 
+            // persistentLocalCache, // <-- MODIFICAÇÃO: Não usamos mais esta
+            enablePersistence, // <-- MODIFICAÇÃO: Usamos esta
+            collection, onSnapshot, 
             updateDoc, deleteDoc, doc, addDoc, setDoc, query, orderBy, writeBatch 
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
@@ -435,8 +438,8 @@
             signInWithEmailAndPassword,
             signOut, 
             onAuthStateChanged,
-            setPersistence, // <-- MODIFICAÇÃO: Importado para persistência
-            browserLocalPersistence // <-- MODIFICAÇÃO: Importado para persistência
+            setPersistence, 
+            browserLocalPersistence 
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
         console.log("Módulos Firebase importados.");
@@ -455,14 +458,12 @@
         // =================================================================
         
         // Init Firebase & Serviços
-        // ===== MODIFICAÇÃO: 'db' será definido mais tarde =====
         let app, db, auth;
         try {
             if (firebaseConfig.apiKey.startsWith("AIzaSy...")) {
                  throw new Error("Configuração do Firebase não preenchida (ainda com placeholder).");
             }
             app = initializeApp(firebaseConfig);
-            // ===== MODIFICAÇÃO: Inicialize APENAS app e auth =====
             auth = getAuth(app); 
             console.log("Firebase App e Auth inicializados.");
         
@@ -476,14 +477,13 @@
 
         // Estado Global
         window.appState = {
-            isAdmin: false, // Controlado pelo login
+            isAdmin: false, 
             currentTab: 'alunos', currentFilter: 'Todos', 
             editingAlunoId: null, editingTurmaId: null, turmasData: [], alunosData: [], 
             searchQuery: '', 
             
             // =================================================================
             // *** 2. PREENCHA AQUI: Lista de emails que são ADMINS ***
-            // (Utilizadores normais não precisam de estar nesta lista)
             // =================================================================
             adminEmails: [
                 'admin@nata.br', // <-- E-mail do Admin
@@ -532,7 +532,7 @@
         const loginButton = document.getElementById('loginButton');
         const authError = document.getElementById('authError');
         const appContainer = document.getElementById('appContainer'); 
-        const contentContainer = document.getElementById('contentContainer'); // <-- O DIV DO BUG
+        const contentContainer = document.getElementById('contentContainer'); 
 
         window.handleLogin = async (event) => {
             event.preventDefault();
@@ -541,9 +541,6 @@
             const pass = document.getElementById('loginPassword').value;
             
             try {
-                // ===== MODIFICAÇÃO: A persistência foi movida para a INICIALIZAÇÃO =====
-                // Não é mais necessário "await setPersistence" aqui.
-                
                 await signInWithEmailAndPassword(auth, email, pass);
                 // O 'onAuthStateChanged' abaixo tratará de mostrar o app
             } catch (error) {
@@ -565,7 +562,7 @@
             });
         };
 
-        // ===== MODIFICAÇÃO: Bloco de inicialização robusto para Offline =====
+        // ===== MODIFICAÇÃO: Bloco de inicialização com enablePersistence =====
         
         let listenersIniciados = false; 
         let unsubscribeAlunos = null; 
@@ -574,7 +571,6 @@
         // Esta função agora controla a inicialização de TODOS os serviços
         async function iniciarServicosEAutenticacao() {
             
-            // Se a inicialização do auth falhou no passo anterior, pare.
             if (!auth) {
                 console.error("Auth não foi inicializado. A app não pode continuar.");
                 document.getElementById('authError').textContent = "Erro crítico ao carregar Auth.";
@@ -586,81 +582,93 @@
                 await setPersistence(auth, browserLocalPersistence);
                 console.log("Persistência local do Auth definida.");
 
-                // 2. SEGUNDO: Inicializamos o FIRESTORE com cache local
-                // (Usamos a variável 'db' global definida no topo)
-                try {
-                     db = initializeFirestore(app, {
-                         cache: persistentLocalCache()
-                     });
-                     console.log("Firestore inicializado com persistência.");
-                } catch (dbError) {
-                    console.error("ERRO AO INICIAR FIRESTORE (DB):", dbError);
-                    window.showToast("Erro ao iniciar DB local.", "error");
-                    // Nota: Mesmo que o DB falhe, o Auth pode continuar.
-                }
-
-                // 3. TERCEIRO: Ativamos o listener do AUTH
-                // Neste ponto, ele JÁ SABE que tem de ler do cache local.
-                onAuthStateChanged(auth, (user) => { 
-                     console.log("onAuthStateChanged (após persistência):", user ? user.email : 'Nenhum utilizador'); 
-                     try { 
-                        if (user) { 
-                            // O utilizador está logado (online ou via cache)
-                            window.appState.isLoggedIn = true; 
-                            window.appState.userEmail = user.email;
-                            window.appState.isAdmin = window.appState.adminEmails.includes(user.email);
-                            console.log("Utilizador logado. É Admin?", window.appState.isAdmin);
-                            
-                            if (loginScreen) loginScreen.style.display = 'none'; 
-                            if (appContainer) appContainer.style.display = 'block'; 
-                            if (contentContainer) contentContainer.style.display = 'block';
-                            
-                            // 4. QUARTO: Iniciamos os listeners do FIRESTORE
-                            // Apenas se o 'db' foi inicializado com sucesso
-                            if (db && !listenersIniciados) { 
-                                iniciarListenersFirestore(); // Esta função usa a variável global 'db'
-                                listenersIniciados = true;
-                            } else if (!db) {
-                                console.error("DB não está definido, listeners do Firestore não podem iniciar.");
-                                document.getElementById('alunosList').innerHTML = "<div class='empty-state'><h3 style='color:red;'>Erro!</h3><p>A base de dados não pôde ser carregada.</p></div>";
-                            }
-                            
-                            updateAdminUI(); 
-                            window.switchTab('alunos'); 
-                        
-                        } else { 
-                            // O utilizador está deslogado
-                            console.log("Utilizador deslogado.");
-                            window.appState.isLoggedIn = false; 
-                            window.appState.isAdmin = false; 
-                            window.appState.userEmail = null;
-                            
-                            if (unsubscribeAlunos) { unsubscribeAlunos(); unsubscribeAlunos = null; }
-                            if (unsubscribeTurmas) { unsubscribeTurmas(); unsubscribeTurmas = null; }
-                            listenersIniciados = false;
-                            
-                            if (loginScreen) loginScreen.style.display = 'flex'; 
-                            if (appContainer) appContainer.style.display = 'none';
-                            if (contentContainer) contentContainer.style.display = 'none';
-                            
-                            const emailInput = document.getElementById('loginEmail');
-                            const passInput = document.getElementById('loginPassword');
-                            if(emailInput) emailInput.value = '';
-                            if(passInput) passInput.value = '';
-                        }
-                     } catch (e) { console.error("ERRO CRÍTICO em onAuthStateChanged:", e); }
-                });
-
             } catch (authError) {
                 console.error("Erro CRÍTICO ao definir persistência do Auth:", authError);
                 const authErrorEl = document.getElementById('authError');
-                if(authErrorEl) {
-                    authErrorEl.textContent = `Erro de Persistência: ${authError.message}`;
-                }
+                if(authErrorEl) authErrorEl.textContent = `Erro de Persistência Auth: ${authError.message}`;
             }
+
+            try {
+                // 2. SEGUNDO: Inicializamos o FIRESTORE (ainda sem cache)
+                db = initializeFirestore(app, {}); // Note: sem cache aqui
+                console.log("Firestore inicializado (passo 1).");
+
+                // 3. TERCEIRO: Tentamos FORÇAR a persistência do DB (IndexedDB)
+                await enablePersistence(db);
+                console.log("Persistência do Firestore (IndexedDB) ATIVADA.");
+
+            } catch (dbError) {
+                console.error("ERRO AO ATIVAR PERSISTÊNCIA DO FIRESTORE:", dbError.code, dbError.message);
+                
+                // Esta é a verificação crucial. Se der este erro, é porque o 
+                // utilizador TEM mesmo múltiplas abas abertas.
+                if (dbError.code == 'failed-precondition') {
+                    window.showToast('Múltiplas abas abertas. O modo offline pode falhar.', 'error');
+                    console.warn("Falha ao ativar persistência: Múltiplas abas abertas.");
+                // Se for outro erro, o IndexedDB não é suportado
+                } else if (dbError.code == 'unimplemented') {
+                    window.showToast('Navegador incompatível com modo offline.', 'error');
+                    console.error("Falha ao ativar persistência: IndexedDB não suportado.");
+                } else {
+                    window.showToast('Erro ao ativar cache local.', 'error');
+                }
+                // A app continua a funcionar online, mesmo que o cache falhe.
+            }
+
+
+            // 4. QUARTO: Ativamos o listener do AUTH
+            // (Independentemente de o cache do DB ter funcionado ou não)
+            onAuthStateChanged(auth, (user) => { 
+                 console.log("onAuthStateChanged (após persistência):", user ? user.email : 'Nenhum utilizador'); 
+                 try { 
+                    if (user) { 
+                        // O utilizador está logado (online ou via cache)
+                        window.appState.isLoggedIn = true; 
+                        window.appState.userEmail = user.email;
+                        window.appState.isAdmin = window.appState.adminEmails.includes(user.email);
+                        console.log("Utilizador logado. É Admin?", window.appState.isAdmin);
+                        
+                        if (loginScreen) loginScreen.style.display = 'none'; 
+                        if (appContainer) appContainer.style.display = 'block'; 
+                        if (contentContainer) contentContainer.style.display = 'block';
+                        
+                        // 5. QUINTO: Iniciamos os listeners do FIRESTORE
+                        if (db && !listenersIniciados) { 
+                            iniciarListenersFirestore(); 
+                            listenersIniciados = true;
+                        } else if (!db) {
+                            console.error("DB não está definido, listeners do Firestore não podem iniciar.");
+                            document.getElementById('alunosList').innerHTML = "<div class='empty-state'><h3 style='color:red;'>Erro!</h3><p>A base de dados não pôde ser carregada.</p></div>";
+                        }
+                        
+                        updateAdminUI(); 
+                        window.switchTab('alunos'); 
+                    
+                    } else { 
+                        // O utilizador está deslogado
+                        console.log("Utilizador deslogado.");
+                        window.appState.isLoggedIn = false; 
+                        window.appState.isAdmin = false; 
+                        window.appState.userEmail = null;
+                        
+                        if (unsubscribeAlunos) { unsubscribeAlunos(); unsubscribeAlunos = null; }
+                        if (unsubscribeTurmas) { unsubscribeTurmas(); unsubscribeTurmas = null; }
+                        listenersIniciados = false;
+                        
+                        if (loginScreen) loginScreen.style.display = 'flex'; 
+                        if (appContainer) appContainer.style.display = 'none';
+                        if (contentContainer) contentContainer.style.display = 'none';
+                        
+                        const emailInput = document.getElementById('loginEmail');
+                        const passInput = document.getElementById('loginPassword');
+                        if(emailInput) emailInput.value = '';
+                        if(passInput) passInput.value = '';
+                    }
+                 } catch (e) { console.error("ERRO CRÍTICO em onAuthStateChanged:", e); }
+            });
         }
         
-        // 5. Chamamos a nova função para iniciar o processo
+        // 6. Chamamos a nova função para iniciar o processo
         iniciarServicosEAutenticacao();
         
         // ===== FIM DA MODIFICAÇÃO =====
@@ -1150,7 +1158,6 @@
 
         // --- Listeners do Firestore ---
         function iniciarListenersFirestore() {
-            // ===== MODIFICAÇÃO: A variável 'db' é global e já está definida =====
             if (!db) {
                 console.error("iniciarListenersFirestore falhou: 'db' não está definido.");
                 return;
@@ -1225,6 +1232,5 @@
         console.log("Script principal finalizado (aguardando Auth state).");
 
     </script>
-
-    </body>
+</body>
 </html>
