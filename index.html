@@ -342,8 +342,8 @@
             font-size: 12px;
             font-weight: 600;
             color: var(--color-active-link);
-            cursor: pointer; /* NOVO: Indica que é clicável */
-            text-decoration: underline; /* NOVO: Indica que é clicável */
+            cursor: pointer; /* Clicável */
+            text-decoration: none; /* <-- SUBLINHADO REMOVIDO */
         }
         .mensagem-assunto:hover {
             opacity: 0.7;
@@ -586,10 +586,11 @@
         window.dbCacheManager = {
             db: null,
             DB_NAME: 'NataCacheManual',
-            DB_VERSION: 2, // (Mantém a v2)
+            DB_VERSION: 3, // <-- VERSÃO ATUALIZADA PARA 'mensagens_outbox'
             STORE_ALUNOS: 'alunos',
             STORE_TURMAS: 'turmas',
-            STORE_FOTOS_DETALHE: 'fotos_detalhe', // (Mantém o cache de fotos)
+            STORE_FOTOS_DETALHE: 'fotos_detalhe',
+            STORE_MENSAGENS_OUTBOX: 'mensagens_outbox', // <-- NOVA LOJA DE CACHE
 
             initDB: function() {
                 return new Promise((resolve, reject) => {
@@ -621,6 +622,11 @@
                         if (!db.objectStoreNames.contains(this.STORE_FOTOS_DETALHE)) {
                             db.createObjectStore(this.STORE_FOTOS_DETALHE, { keyPath: 'id' });
                         }
+                        // NOVO
+                        if (!db.objectStoreNames.contains(this.STORE_MENSAGENS_OUTBOX)) {
+                            // keyPath 'id' (usaremos um timestamp como ID)
+                            db.createObjectStore(this.STORE_MENSAGENS_OUTBOX, { keyPath: 'id' });
+                        }
                     };
                 });
             },
@@ -641,7 +647,7 @@
                 });
             },
             
-            // Salva um único item (para fotos)
+            // Salva um único item (para fotos e outbox)
             writeSingleData: function(storeName, item) {
                 return new Promise((resolve, reject) => {
                     if (!this.db) return reject("DB não inicializado");
@@ -679,7 +685,7 @@
                 });
             },
             
-            // Deleta um único item (para fotos)
+            // Deleta um único item (para fotos e outbox)
             deleteSingleData: function(storeName, id) {
                  return new Promise((resolve, reject) => {
                     if (!this.db) return reject("DB não inicializado");
@@ -729,6 +735,7 @@
             isAdmin: false, 
             userRole: 'user', // 'admin', 'user', ou 'professor'
             isReadOnly: false, // <-- NOVO: Modo Somente Leitura
+            isMobile: false, // <-- NOVO: Detecção de Dispositivo
             currentTab: 'alunos', currentFilter: 'Todos', 
             editingAlunoId: null, editingTurmaId: null, turmasData: [], 
             
@@ -747,6 +754,17 @@
         // --- Funções Utilitárias ---
         window.openModal = (id) => { const el = document.getElementById(id); if(el) { el.classList.add('active'); document.body.style.overflow = 'hidden'; } }
         window.closeModal = (id) => { const el = document.getElementById(id); if(el) { el.classList.remove('active'); document.body.style.overflow = ''; } }
+        
+        // NOVO: Detecção de dispositivo móvel
+        function checkIsMobile() {
+            try {
+                const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                window.appState.isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+            } catch (e) {
+                console.warn("Não foi possível detectar o tipo de dispositivo.", e);
+                window.appState.isMobile = false; // Assume desktop se falhar
+            }
+        }
         
         window.toggleTheme = () => { 
              const isDark = document.body.classList.toggle('dark-mode'); 
@@ -877,6 +895,52 @@
                 window.showToast('Erro ao sair.', 'error');
             });
         };
+        
+        // ===== NOVO: Processar Caixa de Saída =====
+        async function processarCaixaDeSaida(userRole, userEmail) {
+            console.log(`Processando caixa de saída para o role: ${userRole}`);
+            
+            try {
+                const outbox = await window.dbCacheManager.readData('mensagens_outbox');
+                if (outbox.length === 0) {
+                    console.log("Caixa de saída vazia.");
+                    return;
+                }
+                
+                console.log(`Encontradas ${outbox.length} mensagens na caixa de saída.`);
+                const batch = writeBatch(db);
+                let msgsEnviadas = 0;
+                
+                for (const msg of outbox) {
+                    // VERIFICA O ROLE (sua lógica de segurança)
+                    if (msg.requiredRole === userRole) {
+                        console.log(`Enviando mensagem ${msg.id} (role compatível)`);
+                        
+                        // Atualiza com os dados do usuário logado
+                        msg.data.remetenteEmail = userEmail;
+                        msg.data.dataEnvio = Timestamp.now(); // Data do envio real
+                        
+                        const newMsgRef = doc(collection(db, 'mensagens'));
+                        batch.set(newMsgRef, msg.data);
+                        
+                        // Marca para deletar do cache
+                        await window.dbCacheManager.deleteSingleData('mensagens_outbox', msg.id);
+                        msgsEnviadas++;
+                    }
+                }
+                
+                if (msgsEnviadas > 0) {
+                    await batch.commit();
+                    window.showToast(`${msgsEnviadas} mensagem(ns) da caixa de saída foram enviadas!`, 'success');
+                } else {
+                    console.log("Nenhuma mensagem na caixa de saída era compatível com este role.");
+                }
+                
+            } catch (e) {
+                console.error("Erro ao processar caixa de saída:", e);
+                window.showToast('Erro ao enviar mensagens offline.', 'error');
+            }
+        }
 
         // ===== Bloco de inicialização robusto para Offline (VERSÃO CACHE MANUAL) =====
         
@@ -888,6 +952,8 @@
 
         // Esta função agora controla a inicialização de TODOS os serviços
         async function iniciarServicosEAutenticacao() {
+            
+            checkIsMobile(); // Detecta se é celular
             
             if (!auth) {
                 console.error("Auth não foi inicializado. A app não pode continuar.");
@@ -950,6 +1016,9 @@
                                 console.log("Salvando 'passaporte' de login online...");
                                 localStorage.setItem('lastOnlineLoginRole', window.appState.userRole);
                                 localStorage.setItem('lastOnlineLoginTimestamp', new Date().toISOString());
+                                
+                                // ===== NOVO: TENTA PROCESSAR CAIXA DE SAÍDA =====
+                                await processarCaixaDeSaida(window.appState.userRole, window.appState.userEmail);
                             }
                             // ===================================================
                             
@@ -1432,7 +1501,7 @@
                     dispensas: form.alunoDispensas.value.trim(), 
                     notificacoes: form.alunoNotificacoes.value.trim(), 
                     advertencias: form.alunoAdvertencias.value.trim(), 
-                    suspensao: form.alunoSuspensoes.value.trim(), // Corrigido de 'suspensoes'
+                    suspensoes: form.alunoSuspensoes.value.trim(), 
                     obs2: form.alunoObs2.value.trim() 
                 }; 
                 Object.keys(alunoData).forEach(k => {if(alunoData[k] === '') delete alunoData[k];}); 
@@ -1525,7 +1594,7 @@
                 } 
             }
             
-            form.alunoResponsavel1Nome.value = aluno.responsavel1Nome || ''; form.alunoResponsavel1Tipo.value = aluno.responsavel1Tipo || ''; form.alunoResponsavel1Tel.value = aluno.responsavel1Tel || ''; form.alunoResponsavel2Nome.value = aluno.responsavel2Nome || ''; form.alunoResponsavel2Tipo.value = aluno.responsavel2Tipo || ''; form.alunoResponsavel2Tel.value = aluno.responsavel2Tel || ''; form.alunoPCD.value = aluno.pcd ? 'true' : 'false'; form.alunoProvaDif.value = aluno.provaDif ? 'true' : 'false'; form.alunoMonitorias.value = aluno.monitorias || ''; form.alunoProjetos.value = aluno.projetos || ''; form.alunoObs1.value = aluno.obs1 || ''; form.alunoDispensas.value = aluno.dispensas || ''; form.alunoNotificacoes.value = aluno.notificacoes || ''; form.alunoAdvertencias.value = aluno.advertencias || ''; form.alunoSuspensoes.value = aluno.suspensao || ''; // Corrigido
+            form.alunoResponsavel1Nome.value = aluno.responsavel1Nome || ''; form.alunoResponsavel1Tipo.value = aluno.responsavel1Tipo || ''; form.alunoResponsavel1Tel.value = aluno.responsavel1Tel || ''; form.alunoResponsavel2Nome.value = aluno.responsavel2Nome || ''; form.alunoResponsavel2Tipo.value = aluno.responsavel2Tipo || ''; form.alunoResponsavel2Tel.value = aluno.responsavel2Tel || ''; form.alunoPCD.value = aluno.pcd ? 'true' : 'false'; form.alunoProvaDif.value = aluno.provaDif ? 'true' : 'false'; form.alunoMonitorias.value = aluno.monitorias || ''; form.alunoProjetos.value = aluno.projetos || ''; form.alunoObs1.value = aluno.obs1 || ''; form.alunoDispensas.value = aluno.dispensas || ''; form.alunoNotificacoes.value = aluno.notificacoes || ''; form.alunoAdvertencias.value = aluno.advertencias || ''; form.alunoSuspensoes.value = aluno.suspensoes || ''; 
             form.alunoObs2.value = aluno.obs2 || ''; 
             
             const delBtn = document.getElementById('deleteAlunoBtn'); if(delBtn) delBtn.style.display = 'block'; 
@@ -1659,7 +1728,7 @@
             const sDados = `${cDr('Nome',aluno.nome)}${cDr('Matrícula',aluno.matricula)}${cDr('Nº Diário',aluno.diario)}${cDr('Turma',aluno.turma)}${cDr('Status',aluno.status)}${cDr('Nasc.',`${formatDate(aluno.nascimento)} ${calculateAge(aluno.nascimento)}`)}${cDr('CPF',aluno.cpf)}${cDr('Tel Aluno',aluno.telefone)}`;
             const sResp = `${cDr('Resp 1',aluno.responsavel1Nome)}${cDr('Par. 1',aluno.responsavel1Tipo)}${cDr('Cont. 1',aluno.responsavel1Tel)}${cDr('Resp 2',aluno.responsavel2Nome)}${cDr('Par. 2',aluno.responsavel2Tipo)}${cDr('Cont. 2',aluno.responsavel2Tel)}`;
             const sInfo = `${cDr('PCD?',aluno.pcd?'Sim':'Não')}${cDr('Prova Dif?',aluno.provaDif?'Sim':'Não')}${cDr('Monitorias',aluno.monitorias)}${cDr('Projetos',aluno.projetos)}${cDr('Obs 1',aluno.obs1)}`;
-            const sDisc = `${cDr('Dispensas',aluno.dispensas)}${cDr('Notificações',aluno.notificacoes)}${cDr('Advertências',aluno.advertencias)}${cDr('Suspensões',aluno.suspensao)}${cDr('Obs 2',aluno.obs2)}`; // Corrigido
+            const sDisc = `${cDr('Dispensas',aluno.dispensas)}${cDr('Notificações',aluno.notificacoes)}${cDr('Advertências',aluno.advertencias)}${cDr('Suspensões',aluno.suspensoes)}${cDr('Obs 2',aluno.obs2)}`;
             
             body.innerHTML = `${av}${navHtml}${editButtonHtml}
                 ${sDados ? `<div class="detail-section"><h3>Dados Pessoais</h3>${sDados}</div>` : ''}
@@ -1832,17 +1901,23 @@
                      
                      // NOVO: Botões de Ação
                      let actionsHtml = '';
-                     if (!window.appState.isReadOnly && !window.appState.isSelectionModeActive) {
-                         // Botão de Mensagem (para todos)
+                     // Botão de Editar (só Admin, não ReadOnly)
+                     if (window.appState.isAdmin && !window.appState.isReadOnly && !window.appState.isSelectionModeActive) {
+                         actionsHtml += `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar">
+                                            <span class="material-icons-outlined">edit</span>
+                                         </button>`;
+                     }
+                     
+                     // Botão de Mensagem (Não-Admin)
+                     // Aparece se: (Não for admin E não estiver em modo seleção) E (estiver online OU estiver offline EM UM CELULAR)
+                     const podeEnviarMsg = !window.appState.isAdmin && !window.appState.isSelectionModeActive;
+                     const condicaoOfflineOk = window.appState.isReadOnly && window.appState.isMobile;
+                     const condicaoOnlineOk = !window.appState.isReadOnly;
+                     
+                     if (podeEnviarMsg && (condicaoOnlineOk || condicaoOfflineOk)) {
                          actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${a.id}', '${escapeHTML(a.nome)}', 'aluno')" title="Enviar observação">
                                             <span class="material-icons-outlined">chat_bubble_outline</span>
                                          </button>`;
-                         // Botão de Editar (só Admin)
-                         if (window.appState.isAdmin) {
-                             actionsHtml += `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar">
-                                                <span class="material-icons-outlined">edit</span>
-                                             </button>`;
-                         }
                      }
                      
                      return `<div class="${cardCls}" data-aluno-id="${a.id}" onclick="${clickH}">
@@ -1893,19 +1968,24 @@
                 
                 // NOVO: Botões de Ação
                 let actionsHtml = '';
-                if (!window.appState.isReadOnly) {
-                    // Botão de Mensagem (para todos)
+                // Botão de Editar (só Admin, não ReadOnly)
+                if (window.appState.isAdmin && !window.appState.isReadOnly) {
+                    actionsHtml += `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar">
+                                       <span class="material-icons-outlined">edit</span>
+                                    </button>`;
+                }
+                
+                // Botão de Mensagem (Não-Admin)
+                const podeEnviarMsg = !window.appState.isAdmin;
+                const condicaoOfflineOk = window.appState.isReadOnly && window.appState.isMobile;
+                const condicaoOnlineOk = !window.appState.isReadOnly;
+                
+                if (podeEnviarMsg && (condicaoOnlineOk || condicaoOfflineOk)) {
                     actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${t.id}', '${escapeHTML(t.nome)}', 'turma')" title="Enviar observação">
                                        <span class="material-icons-outlined">chat_bubble_outline</span>
                                     </button>`;
-                    // Botão de Editar (só Admin)
-                    if (window.appState.isAdmin) {
-                        actionsHtml += `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar">
-                                           <span class="material-icons-outlined">edit</span>
-                                        </button>`;
-                    }
                 }
-                
+
                 const avatar = `<div class="avatar-placeholder" style="background:var(--color-border);color:var(--color-active-link); border-radius:var(--avatar-border-radius);"><span class="material-icons-outlined">school</span></div>`;
                     
                 return `<div class="card" style="cursor:pointer;" onclick="window.showTurmaDetail('${t.id}')">
@@ -2096,7 +2176,14 @@
         
         // Abre o modal para enviar uma mensagem
         window.openMensagemModal = (id, nome, tipo) => {
-            if (!window.appState.isLoggedIn || window.appState.isReadOnly) return; // Não pode enviar em modo offline
+            if (!window.appState.isLoggedIn) return; // Não pode se não estiver logado
+            
+            // Se estiver em modo ReadOnly (offline) E NÃO for mobile, bloqueia.
+            if (window.appState.isReadOnly && !window.appState.isMobile) {
+                window.showToast('Envio de mensagens offline só é permitido em dispositivos móveis.', 'error');
+                return;
+            }
+            
             const form = document.getElementById('mensagemForm');
             if (form) form.reset();
             
@@ -2106,12 +2193,14 @@
             const assuntoLabel = (tipo === 'aluno') ? 'Aluno' : 'Turma';
             document.getElementById('mensagemAssuntoNome').value = `${assuntoLabel}: ${nome}`;
             
-            // NOVO: Esconde/mostra campo de assinatura
+            // Esconde/mostra campo de assinatura
             const assinaturaContainer = document.getElementById('mensagemAssinaturaContainer');
             if (window.appState.isAdmin) {
                 assinaturaContainer.style.display = 'none';
             } else {
                 assinaturaContainer.style.display = 'block';
+                // Tenta pré-preencher a assinatura do cache, se houver
+                document.getElementById('mensagemAssinatura').value = localStorage.getItem('lastUserSignature') || '';
             }
             
             window.openModal('mensagemModal');
@@ -2120,17 +2209,25 @@
         // Salva a mensagem no Firestore
         window.saveMensagem = async (event) => {
             event.preventDefault();
-            if (!window.appState.isLoggedIn || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            if (!window.appState.isLoggedIn) return window.showToast('Não está logado.', 'error');
             
             const form = event.target;
             const saveBtn = document.getElementById('saveMensagemBtn');
             if(saveBtn) saveBtn.disabled = true;
             
-            const assinatura = window.appState.isAdmin ? 'Admin' : form.mensagemAssinatura.value.trim();
-            if (!assinatura && !window.appState.isAdmin) {
-                 window.showToast('Por favor, preencha sua assinatura.', 'error');
-                 if(saveBtn) saveBtn.disabled = false;
-                 return;
+            // Define a assinatura
+            let assinatura;
+            if (window.appState.isAdmin) {
+                assinatura = 'Admin';
+            } else {
+                assinatura = form.mensagemAssinatura.value.trim();
+                if (!assinatura) {
+                     window.showToast('Por favor, preencha sua assinatura.', 'error');
+                     if(saveBtn) saveBtn.disabled = false;
+                     return;
+                }
+                // Salva a assinatura para a próxima vez
+                localStorage.setItem('lastUserSignature', assinatura);
             }
             
             const msgData = {
@@ -2138,20 +2235,26 @@
                 tipo: form.mensagemTipo.value,
                 assuntoId: form.mensagemAssuntoId.value,
                 assuntoNome: document.getElementById('mensagemAssuntoNome').value,
-                remetenteEmail: window.appState.userEmail,
-                remetenteAssinatura: assinatura, // NOVO
-                dataEnvio: Timestamp.now(), // Usa o Timestamp do servidor
+                remetenteEmail: window.appState.userEmail, // Pode ser "Offline"
+                remetenteAssinatura: assinatura, 
+                dataEnvio: Timestamp.now(), // Firestore substitui isso
                 lida: false
             };
             
             try {
-                // 'addDoc' funciona offline automaticamente!
-                await addDoc(collection(db, 'mensagens'), msgData);
-                
-                if (navigator.onLine) {
-                    window.showToast('Mensagem enviada ao Admin!', 'success');
+                // Se estiver em ReadOnly (Offline), salva na Caixa de Saída
+                if (window.appState.isReadOnly) {
+                    const msgCache = {
+                        id: new Date().getTime(), // ID local único
+                        requiredRole: window.appState.userRole, // Role necessário para enviar
+                        data: msgData
+                    };
+                    await window.dbCacheManager.writeSingleData('mensagens_outbox', msgCache);
+                    window.showToast('Mensagem salva na fila offline. Será enviada no seu próximo login online.', 'success');
                 } else {
-                    window.showToast('Você está offline. A mensagem será enviada quando houver conexão.', 'success');
+                    // Se estiver online, envia direto
+                    await addDoc(collection(db, 'mensagens'), msgData);
+                    window.showToast('Mensagem enviada ao Admin!', 'success');
                 }
                 
                 window.closeModal('mensagemModal');
@@ -2165,6 +2268,10 @@
         
         // NOVO: Navega para o item clicado na caixa de entrada
         window.goToMensagemAssunto = (tipo, id) => {
+            if (window.appState.isReadOnly) {
+                window.showToast('Navegação desabilitada em modo offline.', 'error');
+                return;
+            }
             console.log(`Navegando para ${tipo} com ID ${id}`);
             if (tipo === 'aluno') {
                 window.switchTab('alunos');
@@ -2201,7 +2308,8 @@
             }
             
             list.innerHTML = mensagens.map(msg => {
-                const remetente = msg.remetenteAssinatura ? msg.remetenteAssinatura : msg.remetenteEmail;
+                // CORRIGIDO: Usa a assinatura
+                const remetente = msg.remetenteAssinatura ? msg.remetenteAssinatura : (msg.remetenteEmail || 'Desconhecido');
                 return `<div class="mensagem-card">
                             <div class="mensagem-header">
                                 <div>
