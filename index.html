@@ -586,11 +586,11 @@
         window.dbCacheManager = {
             db: null,
             DB_NAME: 'NataCacheManual',
-            DB_VERSION: 3, // <-- VERSÃO ATUALIZADA
+            DB_VERSION: 3, // (Mantém a v3)
             STORE_ALUNOS: 'alunos',
             STORE_TURMAS: 'turmas',
             STORE_FOTOS_DETALHE: 'fotos_detalhe',
-            STORE_MENSAGENS_OUTBOX: 'mensagens_outbox', // <-- NOVA LOJA DE CACHE
+            STORE_MENSAGENS_OUTBOX: 'mensagens_outbox', // (Caixa de Saída)
 
             initDB: function() {
                 return new Promise((resolve, reject) => {
@@ -622,7 +622,6 @@
                         if (!db.objectStoreNames.contains(this.STORE_FOTOS_DETALHE)) {
                             db.createObjectStore(this.STORE_FOTOS_DETALHE, { keyPath: 'id' });
                         }
-                        // NOVO
                         if (!db.objectStoreNames.contains(this.STORE_MENSAGENS_OUTBOX)) {
                             db.createObjectStore(this.STORE_MENSAGENS_OUTBOX, { keyPath: 'id' });
                         }
@@ -1938,10 +1937,6 @@
                          }
                          
                          // Botão de Mensagem
-                         // Aparece se:
-                         // 1. For Admin (para anotações)
-                         // 2. OU (Não for Admin E estiver online)
-                         // 3. OU (Não for Admin E estiver offline READONLY E for mobile)
                          const condicaoAdmin = window.appState.isAdmin;
                          const condicaoUserProfOnline = !window.appState.isAdmin && !window.appState.isReadOnly;
                          const condicaoUserProfOffline = !window.appState.isAdmin && window.appState.isReadOnly && window.appState.isMobile;
@@ -2213,7 +2208,7 @@
         window.openMensagemModal = (id, nome, tipo) => {
             if (!window.appState.isLoggedIn) return; // Não pode se não estiver logado
             
-            // Se estiver em modo ReadOnly (offline) E NÃO for mobile E NÃO for Admin, bloqueia.
+            // CORRIGIDO: Se estiver em modo ReadOnly (offline) E NÃO for mobile E NÃO for Admin, bloqueia.
             if (window.appState.isReadOnly && !window.appState.isMobile && !window.appState.isAdmin) {
                 window.showToast('Envio de mensagens offline só é permitido em dispositivos móveis.', 'error');
                 return;
@@ -2228,17 +2223,21 @@
             const assuntoLabel = (tipo === 'aluno') ? 'Aluno' : 'Turma';
             document.getElementById('mensagemAssuntoNome').value = `${assuntoLabel}: ${nome}`;
             
-            // Esconde/mostra campo de assinatura e label
+            // Esconde/mostra campo de assinatura E OBRIGATORIEDADE
             const assinaturaContainer = document.getElementById('mensagemAssinaturaContainer');
+            const assinaturaInput = document.getElementById('mensagemAssinatura');
             const textoLabel = document.getElementById('mensagemTextoLabel');
+            
             if (window.appState.isAdmin) {
                 assinaturaContainer.style.display = 'none';
-                textoLabel.textContent = "Sua Anotação"; // Muda a label para Admin
+                assinaturaInput.required = false; // <-- CORREÇÃO DO BUG
+                textoLabel.textContent = "Sua Anotação"; 
             } else {
                 assinaturaContainer.style.display = 'block';
+                assinaturaInput.required = true; // <-- CORREÇÃO DO BUG
                 textoLabel.textContent = "Sua Mensagem";
                 // Tenta pré-preencher a assinatura do cache, se houver
-                document.getElementById('mensagemAssinatura').value = localStorage.getItem('lastUserSignature') || '';
+                assinaturaInput.value = localStorage.getItem('lastUserSignature') || '';
             }
             
             window.openModal('mensagemModal');
@@ -2275,14 +2274,13 @@
                 assuntoNome: document.getElementById('mensagemAssuntoNome').value,
                 remetenteEmail: window.appState.userEmail, // Pode ser "Offline" ou o email real
                 remetenteAssinatura: assinatura, 
-                remetenteRole: window.appState.userRole, // NOVO: Salva o role de quem enviou
+                remetenteRole: window.appState.userRole, // Salva o role de quem enviou
                 dataEnvio: Timestamp.now(), // Firestore substitui isso
                 lida: false
             };
             
             try {
                 // MODIFICAÇÃO: Salva na fila offline SE não estiver online OU se estiver em modo ReadOnly
-                // O modo ReadOnly é o "não autenticado". O !navigator.onLine é o "autenticado" que perdeu conexão.
                 if (!navigator.onLine || window.appState.isReadOnly) {
                     const msgCache = {
                         id: new Date().getTime(), // ID local único
