@@ -342,6 +342,11 @@
             font-size: 12px;
             font-weight: 600;
             color: var(--color-active-link);
+            cursor: pointer; /* NOVO: Indica que é clicável */
+            text-decoration: underline; /* NOVO: Indica que é clicável */
+        }
+        .mensagem-assunto:hover {
+            opacity: 0.7;
         }
         .mensagem-body {
             font-size: 14px;
@@ -523,6 +528,11 @@
                             <label class="form-label">Sua Mensagem</label>
                             <textarea class="form-input" id="mensagemTexto" required rows="4"></textarea>
                         </div>
+                        <div class="form-group" id="mensagemAssinaturaContainer">
+                            <label class="form-label">Sua Assinatura (Nome)</label>
+                            <input type="text" class="form-input" id="mensagemAssinatura" required placeholder="Seu nome para o Admin saber quem enviou">
+                        </div>
+                        
                         <button type="submit" class="btn btn-primary" id="saveMensagemBtn">Enviar</button>
                     </form>
                 </div>
@@ -545,6 +555,7 @@
         </div>
 
     </div>
+
     <script type="module">
         console.log("Script principal iniciado.");
 
@@ -575,10 +586,10 @@
         window.dbCacheManager = {
             db: null,
             DB_NAME: 'NataCacheManual',
-            DB_VERSION: 2, // <-- VERSÃO ATUALIZADA
+            DB_VERSION: 2, // (Mantém a v2)
             STORE_ALUNOS: 'alunos',
             STORE_TURMAS: 'turmas',
-            STORE_FOTOS_DETALHE: 'fotos_detalhe', // <-- NOVA LOJA DE CACHE
+            STORE_FOTOS_DETALHE: 'fotos_detalhe', // (Mantém o cache de fotos)
 
             initDB: function() {
                 return new Promise((resolve, reject) => {
@@ -607,7 +618,6 @@
                         if (!db.objectStoreNames.contains(this.STORE_TURMAS)) {
                             db.createObjectStore(this.STORE_TURMAS, { keyPath: 'id' });
                         }
-                        // NOVO
                         if (!db.objectStoreNames.contains(this.STORE_FOTOS_DETALHE)) {
                             db.createObjectStore(this.STORE_FOTOS_DETALHE, { keyPath: 'id' });
                         }
@@ -631,7 +641,7 @@
                 });
             },
             
-            // NOVO: Salva um único item (para fotos)
+            // Salva um único item (para fotos)
             writeSingleData: function(storeName, item) {
                 return new Promise((resolve, reject) => {
                     if (!this.db) return reject("DB não inicializado");
@@ -657,7 +667,7 @@
                 });
             },
             
-            // NOVO: Lê um único item (para fotos)
+            // Lê um único item (para fotos)
             readSingleData: function(storeName, id) {
                  return new Promise((resolve, reject) => {
                     if (!this.db) return reject("DB não inicializado");
@@ -669,7 +679,7 @@
                 });
             },
             
-            // NOVO: Deleta um único item (para fotos)
+            // Deleta um único item (para fotos)
             deleteSingleData: function(storeName, id) {
                  return new Promise((resolve, reject) => {
                     if (!this.db) return reject("DB não inicializado");
@@ -1422,7 +1432,7 @@
                     dispensas: form.alunoDispensas.value.trim(), 
                     notificacoes: form.alunoNotificacoes.value.trim(), 
                     advertencias: form.alunoAdvertencias.value.trim(), 
-                    suspensoes: form.alunoSuspensoes.value.trim(), 
+                    suspensao: form.alunoSuspensoes.value.trim(), // Corrigido de 'suspensoes'
                     obs2: form.alunoObs2.value.trim() 
                 }; 
                 Object.keys(alunoData).forEach(k => {if(alunoData[k] === '') delete alunoData[k];}); 
@@ -1515,7 +1525,8 @@
                 } 
             }
             
-            form.alunoResponsavel1Nome.value = aluno.responsavel1Nome || ''; form.alunoResponsavel1Tipo.value = aluno.responsavel1Tipo || ''; form.alunoResponsavel1Tel.value = aluno.responsavel1Tel || ''; form.alunoResponsavel2Nome.value = aluno.responsavel2Nome || ''; form.alunoResponsavel2Tipo.value = aluno.responsavel2Tipo || ''; form.alunoResponsavel2Tel.value = aluno.responsavel2Tel || ''; form.alunoPCD.value = aluno.pcd ? 'true' : 'false'; form.alunoProvaDif.value = aluno.provaDif ? 'true' : 'false'; form.alunoMonitorias.value = aluno.monitorias || ''; form.alunoProjetos.value = aluno.projetos || ''; form.alunoObs1.value = aluno.obs1 || ''; form.alunoDispensas.value = aluno.dispensas || ''; form.alunoNotificacoes.value = aluno.notificacoes || ''; form.alunoAdvertencias.value = aluno.advertencias || ''; form.alunoSuspensoes.value = aluno.suspensoes || ''; form.alunoObs2.value = aluno.obs2 || ''; 
+            form.alunoResponsavel1Nome.value = aluno.responsavel1Nome || ''; form.alunoResponsavel1Tipo.value = aluno.responsavel1Tipo || ''; form.alunoResponsavel1Tel.value = aluno.responsavel1Tel || ''; form.alunoResponsavel2Nome.value = aluno.responsavel2Nome || ''; form.alunoResponsavel2Tipo.value = aluno.responsavel2Tipo || ''; form.alunoResponsavel2Tel.value = aluno.responsavel2Tel || ''; form.alunoPCD.value = aluno.pcd ? 'true' : 'false'; form.alunoProvaDif.value = aluno.provaDif ? 'true' : 'false'; form.alunoMonitorias.value = aluno.monitorias || ''; form.alunoProjetos.value = aluno.projetos || ''; form.alunoObs1.value = aluno.obs1 || ''; form.alunoDispensas.value = aluno.dispensas || ''; form.alunoNotificacoes.value = aluno.notificacoes || ''; form.alunoAdvertencias.value = aluno.advertencias || ''; form.alunoSuspensoes.value = aluno.suspensao || ''; // Corrigido
+            form.alunoObs2.value = aluno.obs2 || ''; 
             
             const delBtn = document.getElementById('deleteAlunoBtn'); if(delBtn) delBtn.style.display = 'block'; 
             window.openModal('alunoModal'); 
@@ -1648,7 +1659,7 @@
             const sDados = `${cDr('Nome',aluno.nome)}${cDr('Matrícula',aluno.matricula)}${cDr('Nº Diário',aluno.diario)}${cDr('Turma',aluno.turma)}${cDr('Status',aluno.status)}${cDr('Nasc.',`${formatDate(aluno.nascimento)} ${calculateAge(aluno.nascimento)}`)}${cDr('CPF',aluno.cpf)}${cDr('Tel Aluno',aluno.telefone)}`;
             const sResp = `${cDr('Resp 1',aluno.responsavel1Nome)}${cDr('Par. 1',aluno.responsavel1Tipo)}${cDr('Cont. 1',aluno.responsavel1Tel)}${cDr('Resp 2',aluno.responsavel2Nome)}${cDr('Par. 2',aluno.responsavel2Tipo)}${cDr('Cont. 2',aluno.responsavel2Tel)}`;
             const sInfo = `${cDr('PCD?',aluno.pcd?'Sim':'Não')}${cDr('Prova Dif?',aluno.provaDif?'Sim':'Não')}${cDr('Monitorias',aluno.monitorias)}${cDr('Projetos',aluno.projetos)}${cDr('Obs 1',aluno.obs1)}`;
-            const sDisc = `${cDr('Dispensas',aluno.dispensas)}${cDr('Notificações',aluno.notificacoes)}${cDr('Advertências',aluno.advertencias)}${cDr('Suspensões',aluno.suspensoes)}${cDr('Obs 2',aluno.obs2)}`;
+            const sDisc = `${cDr('Dispensas',aluno.dispensas)}${cDr('Notificações',aluno.notificacoes)}${cDr('Advertências',aluno.advertencias)}${cDr('Suspensões',aluno.suspensao)}${cDr('Obs 2',aluno.obs2)}`; // Corrigido
             
             body.innerHTML = `${av}${navHtml}${editButtonHtml}
                 ${sDados ? `<div class="detail-section"><h3>Dados Pessoais</h3>${sDados}</div>` : ''}
@@ -2095,17 +2106,32 @@
             const assuntoLabel = (tipo === 'aluno') ? 'Aluno' : 'Turma';
             document.getElementById('mensagemAssuntoNome').value = `${assuntoLabel}: ${nome}`;
             
+            // NOVO: Esconde/mostra campo de assinatura
+            const assinaturaContainer = document.getElementById('mensagemAssinaturaContainer');
+            if (window.appState.isAdmin) {
+                assinaturaContainer.style.display = 'none';
+            } else {
+                assinaturaContainer.style.display = 'block';
+            }
+            
             window.openModal('mensagemModal');
         }
 
         // Salva a mensagem no Firestore
         window.saveMensagem = async (event) => {
             event.preventDefault();
-            if (!window.appState.isLoggedIn || window.appState.isReadOnly) return window.showToast('Não está logado.', 'error');
+            if (!window.appState.isLoggedIn || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
             
             const form = event.target;
             const saveBtn = document.getElementById('saveMensagemBtn');
             if(saveBtn) saveBtn.disabled = true;
+            
+            const assinatura = window.appState.isAdmin ? 'Admin' : form.mensagemAssinatura.value.trim();
+            if (!assinatura && !window.appState.isAdmin) {
+                 window.showToast('Por favor, preencha sua assinatura.', 'error');
+                 if(saveBtn) saveBtn.disabled = false;
+                 return;
+            }
             
             const msgData = {
                 texto: form.mensagemTexto.value.trim(),
@@ -2113,20 +2139,44 @@
                 assuntoId: form.mensagemAssuntoId.value,
                 assuntoNome: document.getElementById('mensagemAssuntoNome').value,
                 remetenteEmail: window.appState.userEmail,
-                remetenteRole: window.appState.userRole,
+                remetenteAssinatura: assinatura, // NOVO
                 dataEnvio: Timestamp.now(), // Usa o Timestamp do servidor
                 lida: false
             };
             
             try {
+                // 'addDoc' funciona offline automaticamente!
                 await addDoc(collection(db, 'mensagens'), msgData);
-                window.showToast('Mensagem enviada ao Admin!', 'success');
+                
+                if (navigator.onLine) {
+                    window.showToast('Mensagem enviada ao Admin!', 'success');
+                } else {
+                    window.showToast('Você está offline. A mensagem será enviada quando houver conexão.', 'success');
+                }
+                
                 window.closeModal('mensagemModal');
             } catch (e) {
                 console.error("Erro ao enviar mensagem:", e);
                 window.showToast('Erro ao enviar mensagem.', 'error');
             } finally {
                 if(saveBtn) saveBtn.disabled = false;
+            }
+        }
+        
+        // NOVO: Navega para o item clicado na caixa de entrada
+        window.goToMensagemAssunto = (tipo, id) => {
+            console.log(`Navegando para ${tipo} com ID ${id}`);
+            if (tipo === 'aluno') {
+                window.switchTab('alunos');
+                // Precisamos garantir que os dados estejam carregados
+                setTimeout(() => {
+                    window.showAlunoDetail(id);
+                }, 100);
+            } else if (tipo === 'turma') {
+                window.switchTab('turmas');
+                setTimeout(() => {
+                    window.showTurmaDetail(id);
+                }, 100);
             }
         }
         
@@ -2141,7 +2191,7 @@
             
             const mensagens = (window.appState.mensagensData || []).filter(msg => {
                 if (q.length === 0) return true;
-                const sf = [msg.texto, msg.remetenteEmail, msg.assuntoNome].filter(Boolean).join(' ').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+                const sf = [msg.texto, msg.remetenteEmail, msg.remetenteAssinatura, msg.assuntoNome].filter(Boolean).join(' ').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
                 return sf.includes(q);
             });
             
@@ -2151,17 +2201,20 @@
             }
             
             list.innerHTML = mensagens.map(msg => {
+                const remetente = msg.remetenteAssinatura ? msg.remetenteAssinatura : msg.remetenteEmail;
                 return `<div class="mensagem-card">
                             <div class="mensagem-header">
                                 <div>
-                                    <div class="mensagem-meta">${escapeHTML(msg.remetenteEmail)} (${escapeHTML(msg.remetenteRole)})</div>
+                                    <div class="mensagem-meta">De: ${escapeHTML(remetente)}</div>
                                     <div class="mensagem-meta">${formatarDataHora(msg.dataEnvio)}</div>
                                 </div>
                                 <button class="mensagem-delete-btn" title="Excluir" onclick="window.deleteMensagem('${msg.id}')">
                                     <span class="material-icons-outlined">delete_outline</span>
                                 </button>
                             </div>
-                            <div class="mensagem-assunto">${escapeHTML(msg.assuntoNome)}</div>
+                            <div class="mensagem-assunto" onclick="window.goToMensagemAssunto('${escapeHTML(msg.tipo)}', '${escapeHTML(msg.assuntoId)}')">
+                                ${escapeHTML(msg.assuntoNome)}
+                            </div>
                             <div class="mensagem-body">${escapeHTML(msg.texto)}</div>
                         </div>`;
             }).join('');
