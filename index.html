@@ -694,6 +694,20 @@
                     request.onerror = (event) => reject(event.target.error);
                     request.onsuccess = (event) => resolve();
                 });
+            },
+            
+            // NOVO: Limpa stores específicas
+            clearStores: function(storeNames) {
+                return new Promise((resolve, reject) => {
+                    if (!this.db) return reject("DB não inicializado");
+                    const transaction = this.db.transaction(storeNames, 'readwrite');
+                    transaction.onerror = (event) => reject(event.target.error);
+                    transaction.oncomplete = (event) => resolve(true);
+                    
+                    storeNames.forEach(storeName => {
+                        transaction.objectStore(storeName).clear();
+                    });
+                });
             }
         };
         // ===== FIM DO GESTOR DE CACHE =====
@@ -909,6 +923,7 @@
                 console.log(`Encontradas ${outbox.length} mensagens na caixa de saída.`);
                 const batch = writeBatch(db);
                 let msgsEnviadas = 0;
+                let idsParaDeletarDoCache = [];
                 
                 for (const msg of outbox) {
                     // VERIFICA O ROLE (sua lógica de segurança)
@@ -922,14 +937,17 @@
                         const newMsgRef = doc(collection(db, 'mensagens'));
                         batch.set(newMsgRef, msg.data);
                         
-                        // Marca para deletar do cache
-                        await window.dbCacheManager.deleteSingleData('mensagens_outbox', msg.id);
+                        idsParaDeletarDoCache.push(msg.id);
                         msgsEnviadas++;
                     }
                 }
                 
                 if (msgsEnviadas > 0) {
                     await batch.commit();
+                    // Só deleta do cache DEPOIS que o commit foi um sucesso
+                    for (const id of idsParaDeletarDoCache) {
+                        await window.dbCacheManager.deleteSingleData('mensagens_outbox', id);
+                    }
                     window.showToast(`${msgsEnviadas} mensagem(ns) da caixa de saída foram enviadas!`, 'success');
                 } else {
                     console.log("Nenhuma mensagem na caixa de saída era compatível com este role.");
@@ -937,7 +955,8 @@
                 
             } catch (e) {
                 console.error("Erro ao processar caixa de saída:", e);
-                window.showToast('Erro ao enviar mensagens offline.', 'error');
+                // NÃO mostra toast de erro aqui, pois o "falso negativo" pode acontecer
+                // O erro foi logado, e as mensagens continuarão no cache para a próxima tentativa.
             }
         }
 
@@ -1012,12 +1031,22 @@
                             
                             // ===== NOVO: SALVA O PASSAPORTE DE LOGIN ONLINE =====
                             if (navigator.onLine) {
+                                const lastRole = localStorage.getItem('lastOnlineLoginRole');
+                                // NOVO: Verifica se o role mudou
+                                if (lastRole && lastRole !== window.appState.userRole) {
+                                    console.warn(`MUDANÇA DE ROLE DETECTADA: de ${lastRole} para ${window.appState.userRole}. Limpando cache.`);
+                                    window.showToast('Perfil diferente detectado. Limpando cache local...', 'success');
+                                    await window.dbCacheManager.clearStores(['alunos', 'fotos_detalhe']);
+                                }
+                            
                                 console.log("Salvando 'passaporte' de login online...");
                                 localStorage.setItem('lastOnlineLoginRole', window.appState.userRole);
                                 localStorage.setItem('lastOnlineLoginTimestamp', new Date().toISOString());
                                 
-                                // ===== NOVO: TENTA PROCESSAR CAIXA DE SAÍDA =====
-                                await processarCaixaDeSaida(window.appState.userRole, window.appState.userEmail);
+                                // ===== NOVO: TENTA PROCESSAR CAIXA DE SAÍDA (COM ATRASO) =====
+                                setTimeout(() => {
+                                    processarCaixaDeSaida(window.appState.userRole, window.appState.userEmail);
+                                }, 1500); // Atraso de 1.5s para garantir que a auth esteja 100%
                             }
                             // ===================================================
                             
@@ -1898,7 +1927,7 @@
                      const cardCls = `card ${window.appState.isAdmin && window.appState.isSelectionModeActive ? 'selectable' : ''} ${isSel ? 'selected' : ''}`; 
                      const clickH = (window.appState.isAdmin && window.appState.isSelectionModeActive && !window.appState.isReadOnly) ? `window.toggleAlunoSelection('${a.id}')` : `window.showAlunoDetail('${a.id}')`; 
                      
-                     // NOVO: Botões de Ação
+                     // ===== LÓGICA DE BOTÕES CORRIGIDA =====
                      let actionsHtml = '';
                      if (!window.appState.isSelectionModeActive) {
                          // Botão de Editar (só Admin, não ReadOnly)
@@ -1908,11 +1937,12 @@
                                              </button>`;
                          }
                          
-                         // Botão de Mensagem (Todos, com regras de offline)
-                         const condicaoOfflineOk = window.appState.isReadOnly && window.appState.isMobile;
-                         const condicaoOnlineOk = !window.appState.isReadOnly;
-                         
-                         if (condicaoOnlineOk || condicaoOfflineOk) {
+                         // Botão de Mensagem
+                         const condicaoAdmin = window.appState.isAdmin; // Admin pode enviar (anotação)
+                         const condicaoUserProfOffline = !window.appState.isAdmin && window.appState.isReadOnly && window.appState.isMobile;
+                         const condicaoUserProfOnline = !window.appState.isAdmin && !window.appState.isReadOnly;
+
+                         if (condicaoAdmin || condicaoUserProfOffline || condicaoUserProfOnline) {
                              const title = window.appState.isAdmin ? 'Adicionar anotação' : 'Enviar observação';
                              actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${a.id}', '${escapeHTML(a.nome)}', 'aluno')" title="${title}">
                                                 <span class="material-icons-outlined">chat_bubble_outline</span>
@@ -1966,7 +1996,7 @@
                 const alunosNaTurma = alunosGlobais.filter(a => a.turma === t.nome); 
                 const aM = alunosNaTurma.filter(a => a.status === 'Matriculado').length; // 'status' só existe para Admin/User
                 
-                // NOVO: Botões de Ação
+                // ===== LÓGICA DE BOTÕES CORRIGIDA =====
                 let actionsHtml = '';
                 // Botão de Editar (só Admin, não ReadOnly)
                 if (window.appState.isAdmin && !window.appState.isReadOnly) {
@@ -1976,10 +2006,11 @@
                 }
                 
                 // Botão de Mensagem (Todos, com regras de offline)
-                const condicaoOfflineOk = window.appState.isReadOnly && window.appState.isMobile;
-                const condicaoOnlineOk = !window.appState.isReadOnly;
+                const condicaoAdmin = window.appState.isAdmin; // Admin pode enviar (anotação)
+                const condicaoUserProfOffline = !window.appState.isAdmin && window.appState.isReadOnly && window.appState.isMobile;
+                const condicaoUserProfOnline = !window.appState.isAdmin && !window.appState.isReadOnly;
                 
-                if (condicaoOnlineOk || condicaoOfflineOk) {
+                if (condicaoAdmin || condicaoUserProfOffline || condicaoUserProfOnline) {
                     const title = window.appState.isAdmin ? 'Adicionar anotação' : 'Enviar observação';
                     actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${t.id}', '${escapeHTML(t.nome)}', 'turma')" title="${title}">
                                        <span class="material-icons-outlined">chat_bubble_outline</span>
@@ -2218,7 +2249,7 @@
             // Define a assinatura
             let assinatura;
             if (window.appState.isAdmin) {
-                assinatura = 'Admin';
+                assinatura = 'Admin (Anotação)'; // Admin envia como "Admin"
             } else {
                 assinatura = form.mensagemAssinatura.value.trim();
                 if (!assinatura) {
@@ -2237,12 +2268,14 @@
                 assuntoNome: document.getElementById('mensagemAssuntoNome').value,
                 remetenteEmail: window.appState.userEmail, // Pode ser "Offline" ou o email real
                 remetenteAssinatura: assinatura, 
+                remetenteRole: window.appState.userRole, // NOVO: Salva o role de quem enviou
                 dataEnvio: Timestamp.now(), // Firestore substitui isso
                 lida: false
             };
             
             try {
                 // MODIFICAÇÃO: Salva na fila offline SE não estiver online OU se estiver em modo ReadOnly
+                // O modo ReadOnly é o "não autenticado". O !navigator.onLine é o "autenticado" que perdeu conexão.
                 if (!navigator.onLine || window.appState.isReadOnly) {
                     const msgCache = {
                         id: new Date().getTime(), // ID local único
