@@ -586,7 +586,7 @@
         window.dbCacheManager = {
             db: null,
             DB_NAME: 'NataCacheManual',
-            DB_VERSION: 3, // <-- VERSÃO ATUALIZADA PARA 'mensagens_outbox'
+            DB_VERSION: 3, // <-- VERSÃO ATUALIZADA
             STORE_ALUNOS: 'alunos',
             STORE_TURMAS: 'turmas',
             STORE_FOTOS_DETALHE: 'fotos_detalhe',
@@ -624,7 +624,6 @@
                         }
                         // NOVO
                         if (!db.objectStoreNames.contains(this.STORE_MENSAGENS_OUTBOX)) {
-                            // keyPath 'id' (usaremos um timestamp como ID)
                             db.createObjectStore(this.STORE_MENSAGENS_OUTBOX, { keyPath: 'id' });
                         }
                     };
@@ -1901,23 +1900,24 @@
                      
                      // NOVO: Botões de Ação
                      let actionsHtml = '';
-                     // Botão de Editar (só Admin, não ReadOnly)
-                     if (window.appState.isAdmin && !window.appState.isReadOnly && !window.appState.isSelectionModeActive) {
-                         actionsHtml += `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar">
-                                            <span class="material-icons-outlined">edit</span>
-                                         </button>`;
-                     }
-                     
-                     // Botão de Mensagem (Não-Admin)
-                     // Aparece se: (Não for admin E não estiver em modo seleção) E (estiver online OU estiver offline EM UM CELULAR)
-                     const podeEnviarMsg = !window.appState.isAdmin && !window.appState.isSelectionModeActive;
-                     const condicaoOfflineOk = window.appState.isReadOnly && window.appState.isMobile;
-                     const condicaoOnlineOk = !window.appState.isReadOnly;
-                     
-                     if (podeEnviarMsg && (condicaoOnlineOk || condicaoOfflineOk)) {
-                         actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${a.id}', '${escapeHTML(a.nome)}', 'aluno')" title="Enviar observação">
-                                            <span class="material-icons-outlined">chat_bubble_outline</span>
-                                         </button>`;
+                     if (!window.appState.isSelectionModeActive) {
+                         // Botão de Editar (só Admin, não ReadOnly)
+                         if (window.appState.isAdmin && !window.appState.isReadOnly) {
+                             actionsHtml += `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar">
+                                                <span class="material-icons-outlined">edit</span>
+                                             </button>`;
+                         }
+                         
+                         // Botão de Mensagem (Todos, com regras de offline)
+                         const condicaoOfflineOk = window.appState.isReadOnly && window.appState.isMobile;
+                         const condicaoOnlineOk = !window.appState.isReadOnly;
+                         
+                         if (condicaoOnlineOk || condicaoOfflineOk) {
+                             const title = window.appState.isAdmin ? 'Adicionar anotação' : 'Enviar observação';
+                             actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${a.id}', '${escapeHTML(a.nome)}', 'aluno')" title="${title}">
+                                                <span class="material-icons-outlined">chat_bubble_outline</span>
+                                             </button>`;
+                         }
                      }
                      
                      return `<div class="${cardCls}" data-aluno-id="${a.id}" onclick="${clickH}">
@@ -1975,13 +1975,13 @@
                                     </button>`;
                 }
                 
-                // Botão de Mensagem (Não-Admin)
-                const podeEnviarMsg = !window.appState.isAdmin;
+                // Botão de Mensagem (Todos, com regras de offline)
                 const condicaoOfflineOk = window.appState.isReadOnly && window.appState.isMobile;
                 const condicaoOnlineOk = !window.appState.isReadOnly;
                 
-                if (podeEnviarMsg && (condicaoOnlineOk || condicaoOfflineOk)) {
-                    actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${t.id}', '${escapeHTML(t.nome)}', 'turma')" title="Enviar observação">
+                if (condicaoOnlineOk || condicaoOfflineOk) {
+                    const title = window.appState.isAdmin ? 'Adicionar anotação' : 'Enviar observação';
+                    actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${t.id}', '${escapeHTML(t.nome)}', 'turma')" title="${title}">
                                        <span class="material-icons-outlined">chat_bubble_outline</span>
                                     </button>`;
                 }
@@ -2047,7 +2047,7 @@
             
             if (!navigator.onLine) {
                 console.log("Offline. Listeners do Firestore não serão ligados.");
-                window.showToast("Está offline. A exibir dados locais.", "success");
+                // As mensagens serão salvas na caixa de saída pelo 'saveMensagem'
                 return;
             }
 
@@ -2178,8 +2178,8 @@
         window.openMensagemModal = (id, nome, tipo) => {
             if (!window.appState.isLoggedIn) return; // Não pode se não estiver logado
             
-            // Se estiver em modo ReadOnly (offline) E NÃO for mobile, bloqueia.
-            if (window.appState.isReadOnly && !window.appState.isMobile) {
+            // Se estiver em modo ReadOnly (offline) E NÃO for mobile E NÃO for Admin, bloqueia.
+            if (window.appState.isReadOnly && !window.appState.isMobile && !window.appState.isAdmin) {
                 window.showToast('Envio de mensagens offline só é permitido em dispositivos móveis.', 'error');
                 return;
             }
@@ -2235,15 +2235,15 @@
                 tipo: form.mensagemTipo.value,
                 assuntoId: form.mensagemAssuntoId.value,
                 assuntoNome: document.getElementById('mensagemAssuntoNome').value,
-                remetenteEmail: window.appState.userEmail, // Pode ser "Offline"
+                remetenteEmail: window.appState.userEmail, // Pode ser "Offline" ou o email real
                 remetenteAssinatura: assinatura, 
                 dataEnvio: Timestamp.now(), // Firestore substitui isso
                 lida: false
             };
             
             try {
-                // Se estiver em ReadOnly (Offline), salva na Caixa de Saída
-                if (window.appState.isReadOnly) {
+                // MODIFICAÇÃO: Salva na fila offline SE não estiver online OU se estiver em modo ReadOnly
+                if (!navigator.onLine || window.appState.isReadOnly) {
                     const msgCache = {
                         id: new Date().getTime(), // ID local único
                         requiredRole: window.appState.userRole, // Role necessário para enviar
@@ -2251,10 +2251,11 @@
                     };
                     await window.dbCacheManager.writeSingleData('mensagens_outbox', msgCache);
                     window.showToast('Mensagem salva na fila offline. Será enviada no seu próximo login online.', 'success');
+                
                 } else {
-                    // Se estiver online, envia direto
+                    // Se estiver online E não for ReadOnly, envia direto
                     await addDoc(collection(db, 'mensagens'), msgData);
-                    window.showToast('Mensagem enviada ao Admin!', 'success');
+                    window.showToast(window.appState.isAdmin ? 'Anotação salva!' : 'Mensagem enviada ao Admin!', 'success');
                 }
                 
                 window.closeModal('mensagemModal');
