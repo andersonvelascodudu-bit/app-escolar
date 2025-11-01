@@ -525,7 +525,7 @@
                             <input type="text" class="form-input" id="mensagemAssuntoNome" readonly style="background:var(--color-border); font-weight: 600;">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Sua Mensagem</label>
+                            <label class="form-label" id="mensagemTextoLabel">Sua Mensagem</label>
                             <textarea class="form-input" id="mensagemTexto" required rows="4"></textarea>
                         </div>
                         <div class="form-group" id="mensagemAssinaturaContainer">
@@ -1938,11 +1938,15 @@
                          }
                          
                          // Botão de Mensagem
-                         const condicaoAdmin = window.appState.isAdmin; // Admin pode enviar (anotação)
-                         const condicaoUserProfOffline = !window.appState.isAdmin && window.appState.isReadOnly && window.appState.isMobile;
+                         // Aparece se:
+                         // 1. For Admin (para anotações)
+                         // 2. OU (Não for Admin E estiver online)
+                         // 3. OU (Não for Admin E estiver offline READONLY E for mobile)
+                         const condicaoAdmin = window.appState.isAdmin;
                          const condicaoUserProfOnline = !window.appState.isAdmin && !window.appState.isReadOnly;
+                         const condicaoUserProfOffline = !window.appState.isAdmin && window.appState.isReadOnly && window.appState.isMobile;
 
-                         if (condicaoAdmin || condicaoUserProfOffline || condicaoUserProfOnline) {
+                         if (condicaoAdmin || condicaoUserProfOnline || condicaoUserProfOffline) {
                              const title = window.appState.isAdmin ? 'Adicionar anotação' : 'Enviar observação';
                              actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${a.id}', '${escapeHTML(a.nome)}', 'aluno')" title="${title}">
                                                 <span class="material-icons-outlined">chat_bubble_outline</span>
@@ -2006,11 +2010,11 @@
                 }
                 
                 // Botão de Mensagem (Todos, com regras de offline)
-                const condicaoAdmin = window.appState.isAdmin; // Admin pode enviar (anotação)
-                const condicaoUserProfOffline = !window.appState.isAdmin && window.appState.isReadOnly && window.appState.isMobile;
+                const condicaoAdmin = window.appState.isAdmin;
                 const condicaoUserProfOnline = !window.appState.isAdmin && !window.appState.isReadOnly;
+                const condicaoUserProfOffline = !window.appState.isAdmin && window.appState.isReadOnly && window.appState.isMobile;
                 
-                if (condicaoAdmin || condicaoUserProfOffline || condicaoUserProfOnline) {
+                if (condicaoAdmin || condicaoUserProfOnline || condicaoUserProfOffline) {
                     const title = window.appState.isAdmin ? 'Adicionar anotação' : 'Enviar observação';
                     actionsHtml += `<button class="card-report-btn" onclick="event.stopPropagation(); window.openMensagemModal('${t.id}', '${escapeHTML(t.nome)}', 'turma')" title="${title}">
                                        <span class="material-icons-outlined">chat_bubble_outline</span>
@@ -2224,12 +2228,15 @@
             const assuntoLabel = (tipo === 'aluno') ? 'Aluno' : 'Turma';
             document.getElementById('mensagemAssuntoNome').value = `${assuntoLabel}: ${nome}`;
             
-            // Esconde/mostra campo de assinatura
+            // Esconde/mostra campo de assinatura e label
             const assinaturaContainer = document.getElementById('mensagemAssinaturaContainer');
+            const textoLabel = document.getElementById('mensagemTextoLabel');
             if (window.appState.isAdmin) {
                 assinaturaContainer.style.display = 'none';
+                textoLabel.textContent = "Sua Anotação"; // Muda a label para Admin
             } else {
                 assinaturaContainer.style.display = 'block';
+                textoLabel.textContent = "Sua Mensagem";
                 // Tenta pré-preencher a assinatura do cache, se houver
                 document.getElementById('mensagemAssinatura').value = localStorage.getItem('lastUserSignature') || '';
             }
