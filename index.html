@@ -562,6 +562,27 @@
             color: white;
         }
     </style>
+
+<style>
+/* NATA 3.1.4 styles for status toggle */
+.status-toggle-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.08s;
+}
+.status-toggle-btn.disabled { opacity: 0.6; cursor: default; pointer-events: none; }
+.status-toggle-btn + .btn-danger { margin-left: 6px; }
+/* improved fade */
+.fade-in { opacity: 0; transform: translateY(10px) scale(0.995); animation: nataFadeIn 0.45s cubic-bezier(.2,.9,.2,1) forwards; }
+@keyframes nataFadeIn { to { opacity: 1; transform: translateY(0) scale(1); } }
+</style>
 </head>
 
 <body class="dark-mode">
@@ -601,7 +622,7 @@
                 </div>
             </div>
         </div>
-        </div>
+    </div>
 
     <div id="appContainer" style="display: none;">
 
@@ -646,7 +667,7 @@
             <div class="content" id="relatoriosContent" style="display:none;">
                 <div id="relatoriosContainer">
                     <div class="loading">A carregar relatórios...</div>
-                    </div>
+                </div>
             </div>
         </div>
 
@@ -698,7 +719,19 @@
         <div class="modal" id="turmaModal"><div class="modal-content"><div class="modal-header"><h2 id="turmaModalTitle">Adicionar Turma</h2><button class="close-btn" onclick="window.closeModal('turmaModal')">&times;</button></div><div class="modal-body"><form id="turmaForm" onsubmit="window.saveTurma(event)"><div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="turmaNome" required></div><div class="form-group"><label class="form-label">Série/Ano</label><input type="text" class="form-input" id="turmaSerie"></div><div class="form-group"><label class="form-label">Obs</label><textarea class="form-input" id="turmaObs"></textarea></div><button type="submit" class="btn btn-primary">Salvar</button><button type="button" class="btn btn-danger" id="deleteTurmaBtn" onclick="window.deleteTurma()" style="display:none;">Excluir</button></form></div></div></div>
         <div class="modal" id="turmaDetailModal"><div class="modal-content"><div class="modal-header"><h2>Detalhes Turma</h2><button class="close-btn" onclick="window.closeModal('turmaDetailModal')">&times;</button></div><div class="modal-body" id="turmaDetailBody"></div></div></div>
         
-        <div class="modal" id="backupModal"><div class="modal-content" style="max-width:400px;"><div class="modal-header"><h2>Backup (Exportar Excel)</h2><button class="close-btn" onclick="window.closeModal('backupModal')">&times;</button></div><div class="modal-body"><p>Exportar dados como planilha Excel (.xlsx):</p><button class="btn btn-primary" onclick="window.exportAlunosXLSX()" style="margin-bottom:10px;">Exportar Alunos</button><button class="btn btn-secondary" onclick="window.exportTurmasXLSX()">Exportar Turmas</button></div></div></div>
+        <div class="modal" id="backupModal">
+            <div class="modal-content" style="max-width:400px;">
+                <div class="modal-header">
+                    <h2>Backup (Exportar Excel)</h2>
+                    <button class="close-btn" onclick="window.closeModal('backupModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Exportar dados como planilha Excel (.xlsx):</p>
+                    <button class="btn btn-primary" onclick="window.exportAlunosXLSX()" style="margin-bottom:10px;">Exportar Alunos</button>
+                    <button class="btn btn-secondary" onclick="window.exportTurmasXLSX()">Exportar Turmas</button>
+                </div>
+            </div>
+        </div>
         
         <div class="modal" id="importModal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h2>Importar (CSV)</h2><button class="close-btn" onclick="window.closeModal('importModal')">&times;</button></div><div class="modal-body"><div class="form-group"><label class="form-label">Tipo</label><select id="importType" class="form-input"><option value="alunos">Alunos</option><option value="turmas">Turmas</option></select></div><div class="form-group"><label class="form-label">Arquivo CSV</label><input type="file" id="csvFileInput" accept=".csv" class="form-input"></div><div style="background:var(--color-warning-bg);padding:10px;border-radius:8px;font-size:13px;color:var(--color-text);margin-bottom:20px;"><strong>Atenção:</strong><ul style="margin-left:20px;margin-top:5px;"><li>CSV simples (vírgula).</li><li>Cabeçalhos idênticos aos campos.</li><li>Sem vírgulas nos dados.</li><li><code>pcd</code>/<code>provaDif</code> = <code>true</code> ou <code>false</code>.</li><li>Use backup como modelo.</li></ul></div><button class="btn btn-primary" onclick="window.handleImport()">Importar</button><div id="importStatus" style="text-align:center;margin-top:15px;"></div></div></div></div>
 
@@ -732,7 +765,6 @@
             </div>
         </div>
 
-        
         <div class="modal" id="registroSelectModal">
             <div class="modal-content" style="max-width:400px;">
                 <div class="modal-header">
@@ -832,6 +864,7 @@
                                 O estudante levou registro físico para assinatura do responsável.
                             </label>
                         </div>
+                        
                         <div class="form-group">
                             <label class="form-label">Sua Assinatura (Nome)</label>
                             <input type="text" class="form-input" id="ocorrenciaAssinatura" required placeholder="Seu nome...">
@@ -865,12 +898,18 @@
 
     </div>
 
+
+
 <script type="module">
+
+// BLOCO 2 COMEÇA ANTES DO script ...//
+
         console.log("Script principal iniciado.");
 
         // ===== 1. IMPORTAÇÕES =====
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-        import * as XLSX from 'https://cdn.jsdelivr.net/npm/xlsx/xlsx.mjs'; // <-- ITEM 5: Importar SheetJS (Excel)
+        // ADICIONADO: Importação para exportar XLSX (Excel)
+        import * as XLSX from 'https://cdn.jsdelivr.net/npm/xlsx/xlsx.mjs'; 
 
         // ===== 2. CONFIGURAÇÃO DO SUPABASE =====
         const SUPABASE_URL = 'https://poztejvpwfwbihsmgkuk.supabase.co'; 
@@ -892,13 +931,14 @@
             }
         }
         
-        // ===== CONSTANTES (ATUALIZADAS CONFORME PLANO DE AÇÃO) (ITEM 3) =====
+        // ===== CONSTANTES (Base: Produção, Melhoria: OCORRENCIA_TIPOS) =====
         const ROLES = {
             ADMIN: 'admin',
             USER: 'user',
-            PROFESSOR: 'prof' // <-- CORRIGIDO para 'prof' (conforme seu feedback)
+            PROFESSOR: 'professor' // Mantido da sua base de produção
         };
         
+        // ATUALIZADO: Transplantado do seu código de melhorias
         const OCORRENCIA_TIPOS = {
             "Notificação": {
                 motivos: ["3º atraso", "Uniforme inadequado", "Outro"],
@@ -930,7 +970,7 @@
             }
         };
 
-        // ===== GESTOR DE CACHE MANUAL (IndexedDB) - CORREÇÃO DE PROMISE V5 (Race Condition) =====
+        // ===== GESTOR DE CACHE MANUAL (IndexedDB) - (Mantido da sua base de produção) =====
         window.dbCacheManager = {
             db: null,
             _initPromise: null, // Controla a promessa de inicialização
@@ -939,11 +979,11 @@
             STORE_ALUNOS: 'alunos',
             STORE_TURMAS: 'turmas',
             STORE_FOTOS_DETALHE: 'fotos_detalhe',
-            STORE_ATESTADOS: 'atestados', // <-- DEPRECADO (MANTIDO PARA EVITAR ERRO DE UPGRADE)
-            STORE_OCORRENCIAS: 'ocorrencias', // <-- AGORA ARMAZENA TUDO
+            STORE_ATESTADOS: 'atestados', 
+            STORE_OCORRENCIAS: 'ocorrencias', 
             STORE_MENSAGENS_OUTBOX: 'mensagens_outbox',
-            STORE_ATESTADOS_OUTBOX: 'atestados_outbox', // <-- DEPRECADO (MANTIDO)
-            STORE_OCORRENCIAS_OUTBOX: 'ocorrencias_outbox', // <-- AGORA ARMAZENA TUDO
+            STORE_ATESTADOS_OUTBOX: 'atestados_outbox', 
+            STORE_OCORRENCIAS_OUTBOX: 'ocorrencias_outbox', 
 
            initDB: function() {
                 // Se já estamos inicializando, retorna a promessa existente
@@ -1021,7 +1061,6 @@
                 return await this.initDB();
             },
 
-
             writeData: async function(storeName, data) {
                 const db = await this._getDB();
                 return new Promise((resolve, reject) => {
@@ -1092,7 +1131,7 @@
         };
         // ===== FIM DO GESTOR DE CACHE =====
 
-        // ===== 3. ESTADO GLOBAL =====
+        // ===== 3. ESTADO GLOBAL (Mantido da sua base de produção) =====
         window.appState = {
             isAdmin: false, isUser: false, isProfessor: false,
             userRole: ROLES.PROFESSOR, isReadOnly: false, isMobile: false, 
@@ -1101,8 +1140,7 @@
             turmasData: [], alunosData: [], 
             publicAlunosData: new Map(), privateAlunosData: new Map(), 
             fotosData: new Map(), mensagensData: [], 
-            atestadosData: new Map(), // DEPRECADO, mas mantido. Usar ocorrenciasData
-            ocorrenciasData: new Map(), // AGORA ARMAZENA TUDO
+            atestadosData: new Map(), ocorrenciasData: new Map(),
             searchQuery: '', userEmail: null, userId: null, 
             userSignature: null, isLoggedIn: false, 
             filteredAlunos: [], currentAlunoIndex: -1, 
@@ -1110,8 +1148,10 @@
             isSelectionModeActive: false, selectedAlunoIds: [],
             registroAlunoId: null, registroAlunoNome: null,
         };
-        
-        // ===== 4. FUNÇÕES UTILITÁRIAS =====
+
+//BLOCO 3 =================
+
+        // ===== 4. FUNÇÕES UTILITÁRIAS (Mantido da sua base de produção) =====
         window.openModal = (id) => { const el = document.getElementById(id); if(el) { el.classList.add('active'); document.body.style.overflow = 'hidden'; } }
         window.closeModal = (id) => { const el = document.getElementById(id); if(el) { el.classList.remove('active'); document.body.style.overflow = ''; } }
         
@@ -1201,78 +1241,7 @@
         const authError = document.getElementById('authError');
         const appContainer = document.getElementById('appContainer'); 
         const contentContainer = document.getElementById('contentContainer'); 
-     
-        // =======================================================
-// --- SOLUÇÃO 1: CÓDIGO FALTANTE (ADICIONE ISTO) ---
-// =======================================================
 
-/**
- * Abre o modal de "Adicionar" correto (Aluno ou Turma)
- * com base na aba ativa e limpa o formulário.
- */
-window.openAddModal = () => {
-    // Verifica se está no modo ReadOnly
-    if (window.appState.isReadOnly) {
-        window.showToast('Desabilitado no modo Somente Leitura.', 'error');
-        return;
-    }
-
-    if (window.appState.currentTab === 'alunos') {
-        // ---- Preparar Modal de Aluno ----
-        window.appState.editingAlunoId = null; // Garante que não está editando
-
-        const form = document.getElementById('alunoForm');
-        if (form) form.reset(); // Limpa o formulário
-
-        // Ajusta a UI do modal para "Adicionar"
-        document.getElementById('alunoModalTitle').textContent = 'Adicionar Aluno';
-        document.getElementById('deleteAlunoBtn').style.display = 'none';
-        document.getElementById('currentPhotoContainer').style.display = 'none';
-        
-        // Popula as turmas no <select> (importante para o form)
-        populateTurmaSelect('alunoTurma', null);
-
-        window.openModal('alunoModal');
-
-    } else if (window.appState.currentTab === 'turmas') {
-        // ---- Preparar Modal de Turma ----
-        window.appState.editingTurmaId = null; // Garante que não está editando
-
-        const form = document.getElementById('turmaForm');
-        if (form) form.reset(); // Limpa o formulário
-
-        // Ajusta a UI do modal para "Adicionar"
-        document.getElementById('turmaModalTitle').textContent = 'Adicionar Turma';
-        document.getElementById('deleteTurmaBtn').style.display = 'none';
-        
-        window.openModal('turmaModal');
-    }
-}
-
-/**
- * (Helper) Popula o select de turmas no formulário de aluno.
- * (Esta função pode já existir no seu código, se não, adicione-a)
- */
-function populateTurmaSelect(elementId, selectedValue) {
-    const select = document.getElementById(elementId);
-    if (!select) return;
-
-    const turmasOrdenadas = [...window.appState.turmasData].sort((a, b) => a.nome.localeCompare(b.nome));
-    
-    select.innerHTML = '<option value="">Selecione uma turma...</option>'; // Opção padrão
-    
-    turmasOrdenadas.forEach(turma => {
-        const option = document.createElement('option');
-        option.value = turma.nome; // Salva o NOME da turma
-        option.textContent = turma.nome;
-        if (turma.nome === selectedValue) {
-            option.selected = true;
-        }
-        select.appendChild(option);
-    });
-}
-
-     
         window.handleLogin = async (event) => {
             event.preventDefault();
             if (authError) authError.textContent = '';
@@ -1314,7 +1283,7 @@ function populateTurmaSelect(elementId, selectedValue) {
             loadOfflineCacheData();
         }
         
-        // ===== Carregador de Cache Offline =====
+        // ===== Carregador de Cache Offline (Correto, lendo tabelas separadas) =====
         async function loadOfflineCacheData() {
             console.log("Carregando dados SOMENTE do Cache Manual...");
             try {
@@ -1323,15 +1292,17 @@ function populateTurmaSelect(elementId, selectedValue) {
                 const turmas = await window.dbCacheManager.readData('turmas');
                 const alunos = await window.dbCacheManager.readData('alunos'); 
                 const fotos = await window.dbCacheManager.readData('fotos_detalhe');
+                const atestados = await window.dbCacheManager.readData('atestados');
                 const ocorrencias = await window.dbCacheManager.readData('ocorrencias');
 
                 if (turmas) window.appState.turmasData = turmas;
                 if (alunos) window.appState.alunosData = alunos;
                 if (fotos) window.appState.fotosData = new Map(fotos.map(f => [f.id, f.fotoBase64]));
+                if (atestados) window.appState.atestadosData = new Map(atestados.map(a => [a.aluno_id, [...(window.appState.atestadosData.get(a.aluno_id) || []), a]]));
                 if (ocorrencias) window.appState.ocorrenciasData = new Map(ocorrencias.map(o => [o.aluno_id, [...(window.appState.ocorrenciasData.get(o.aluno_id) || []), o]]));
                 
                 console.log(`Cache: ${turmas.length} turmas, ${alunos.length} alunos, ${fotos.length} fotos.`);
-                console.log(`Cache: ${ocorrencias.length} ocorrências.`);
+                console.log(`Cache: ${atestados.length} atestados, ${ocorrencias.length} ocorrências.`);
                 
                 loginScreen.style.display = 'none';
                 appContainer.style.display = 'block';
@@ -1388,7 +1359,7 @@ function populateTurmaSelect(elementId, selectedValue) {
             loadApp(true); 
         }
         
-        // ===== Processar Caixa de Saída (Outbox) =====
+        // ===== Processar Caixa de Saída (Outbox) (Correto, processando outboxes separadas) =====
         async function processarCaixasDeSaida() {
             if (!navigator.onLine || window.appState.isReadOnly) {
                 console.log("Offline ou ReadOnly, pulando processamento da caixa de saída.");
@@ -1402,12 +1373,13 @@ function populateTurmaSelect(elementId, selectedValue) {
             console.log(`Processando caixas de saída para o role: ${userRole}`);
             
             try {
-                // Unifica a leitura das caixas de saída
                 const outboxMensagens = await window.dbCacheManager.readData('mensagens_outbox');
+                const outboxAtestados = await window.dbCacheManager.readData('atestados_outbox');
                 const outboxOcorrencias = await window.dbCacheManager.readData('ocorrencias_outbox');
                 
                 const outbox = [
                     ...outboxMensagens.map(m => ({ ...m, storeName: 'mensagens_outbox', collectionName: 'mensagens', localId: m.id })),
+                    ...outboxAtestados.map(m => ({ ...m, storeName: 'atestados_outbox', collectionName: 'atestados', localId: m.id })),
                     ...outboxOcorrencias.map(m => ({ ...m, storeName: 'ocorrencias_outbox', collectionName: 'ocorrencias', localId: m.id }))
                 ];
 
@@ -1447,7 +1419,6 @@ function populateTurmaSelect(elementId, selectedValue) {
                         if (error) {
                             console.error(`Erro ao enviar lote para ${collectionName}:`, error.message);
                             hasErrors = true;
-                            // Não deleta os itens da outbox se o lote falhou
                             itemsParaDeletar = itemsParaDeletar.filter(i => i.storeName !== `${collectionName}_outbox`);
                         }
                     }
@@ -1471,13 +1442,12 @@ function populateTurmaSelect(elementId, selectedValue) {
             }
         }
 
-        // ===== Bloco de inicialização robusto (VERSÃO SUPABASE) =====
+
+        // ===== Bloco de inicialização robusto (VERSÃO SUPABASE) (Mantido da base de produção) =====
         
         let listenersIniciados = false; 
         let subscriptions = []; 
 
-        // *** CORREÇÃO DO ERRO 'InvalidStateError' (Race Condition) ***
-        // A lógica de `initDB` agora é chamada ANTES do listener de auth.
         async function iniciarServicosEAutenticacao() {
             
             checkIsMobile(); 
@@ -1495,142 +1465,109 @@ function populateTurmaSelect(elementId, selectedValue) {
                 console.log("Cache Manual está pronto para uso.");
                 
                 // 2. Agora sim, ativa o listener do AUTH
-                        supabase.auth.onAuthStateChange(async (event, session) => {
-             console.log(`onAuthStateChange (Supabase): ${event}`);
-             
-             try { 
-                if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') { 
-                    if (!session) return; 
-                    
-                    window.appState.isLoggedIn = true; 
-                    window.appState.isReadOnly = false; 
-                    window.appState.userEmail = session.user.email;
-                    window.appState.userId = session.user.id;
-                    
-                    // ==========================================================
-                    // INÍCIO DA CORREÇÃO DO LOGIN (Variável Renomeada)
-                    // ==========================================================
-                    
-                    // SOLUÇÃO: Lê a 'role' diretamente dos metadados da sessão (JWT)
-                    let roleParaEsteLogin = session.user.user_metadata?.role || ROLES.PROFESSOR; 
-
-                    // Se por algum motivo o metadado não existir (ex: usuário muito antigo),
-                    // tentamos uma consulta de último recurso.
-                    if (!session.user.user_metadata?.role) {
-                        console.warn(`Metadado 'role' não encontrado para ${session.user.email}. Tentando consulta direta...`);
-                        const { data: perfil, error: perfilError } = await db
-                            .from('perfis')
-                            .select('role')
-                            .eq('id', session.user.id)
-                            .single();
-                        
-                        if (perfil && !perfilError) {
-                            roleParaEsteLogin = perfil.role;
-                            console.log("Consulta direta bem-sucedida. Role definida como:", roleParaEsteLogin);
-                        } else {
-                             console.error("Falha na consulta direta. Acesso será de 'Professor'.");
-                             roleParaEsteLogin = ROLES.PROFESSOR;
-                        }
-                    }
-
-                    // AGORA, definimos o estado global e as flags booleanas UMA SÓ VEZ.
-                    // (Removemos a declaração 'const userRole' duplicada que estava aqui)
-                    window.appState.userRole = roleParaEsteLogin;
-                    window.appState.isAdmin = (roleParaEsteLogin === ROLES.ADMIN);
-                    window.appState.isUser = (roleParaEsteLogin === ROLES.USER);
-                    window.appState.isProfessor = (roleParaEsteLogin === ROLES.PROFESSOR);
-                                    
-                    console.log(`Utilizador logado (${session.user.email}). Role: ${window.appState.userRole}.`);
-                    
-                    // ==========================================================
-                    // FIM DA CORREÇÃO DO LOGIN
-                    // ==========================================================
-                    
-                    const lastRole = localStorage.getItem('lastOnlineLoginRole');
-                    
-                    if (navigator.onLine && lastRole && lastRole !== window.appState.userRole) { // <-- Corrigido para usar o appState
-                        console.warn(`MUDANÇA DE ROLE DETECTADA. Limpando cache.`);
-                        window.showToast('Perfil diferente detectado. Limpando cache local...', 'success');
-                        await window.dbCacheManager.clearStores(['alunos', 'fotos_detalhe', 'ocorrencias']);
-                    }
-                
-                    localStorage.setItem('lastOnlineLoginRole', window.appState.userRole); // <-- Corrigido para usar o appState
-                    localStorage.setItem('lastOnlineLoginTimestamp', new Date().toISOString());
-                    
-                    setTimeout(processarCaixasDeSaida, 1500); 
-                    
-                    const savedSignature = localStorage.getItem('lastUserSignature');
-                    window.appState.userSignature = savedSignature; 
-                    
-                    if ((window.appState.isUser || window.appState.isProfessor) && !savedSignature) {
-                        window.openModal('nameEntryModal');
-                    } else {
-                        loadApp(false); 
-                    }
-                
-                } else if (event === 'SIGNED_OUT') { 
-                    
-                    Object.assign(window.appState, {
-                        isLoggedIn: false, isAdmin: false, isUser: false, isProfessor: false,
-                        isReadOnly: false, userEmail: null, userId: null, userSignature: null,
-                        userRole: ROLES.PROFESSOR,
-                        alunosData: [], turmasData: [], mensagensData: [],
-                        publicAlunosData: new Map(), privateAlunosData: new Map(),
-                        fotosData: new Map(),
-                        ocorrenciasData: new Map()
-                    });
-                    
-                    if (listenersIniciados) {
-                        subscriptions.forEach(sub => sub.unsubscribe());
-                        subscriptions = [];
-                        listenersIniciados = false;
-                    }
-                    
-                    if (loginScreen) loginScreen.style.display = 'flex'; 
-                    if (appContainer) appContainer.style.display = 'none';
-                    if (contentContainer) contentContainer.style.display = 'none';
-                    
-                    const emailInput = document.getElementById('loginEmail');
-                    const passInput = document.getElementById('loginPassword');
-                    if(emailInput) emailInput.value = '';
-                    if(passInput) passInput.value = '';
-                    
-                    // Lógica do Passaporte Offline
-                    try {
-                        const lastRole = localStorage.getItem('lastOnlineLoginRole');
-                        const lastTimestamp = localStorage.getItem('lastOnlineLoginTimestamp');
-                        const offlineBtn = document.getElementById('offlineLoginButton');
-                        const offlineMsg = document.getElementById('offlineLoginMessage');
-                        
-                        if (lastRole && lastTimestamp && offlineBtn && offlineMsg) {
-                            const now = new Date();
-                            const lastLoginDate = new Date(lastTimestamp);
-                            const diffMs = now.getTime() - lastLoginDate.getTime();
-                            const diffDays = diffMs / (1000 * 60 * 60 * 24);
+                supabase.auth.onAuthStateChange(async (event, session) => {
+                     console.log(`onAuthStateChange (Supabase): ${event}`);
+                     
+                     try { 
+                        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') { 
+                            if (!session) return; 
                             
-                            const DIAS_DE_VALIDADE = 7; // 7 DIAS
+                            window.appState.isLoggedIn = true; 
+                            window.appState.isReadOnly = false; 
+                            window.appState.userEmail = session.user.email;
+                            window.appState.userId = session.user.id;
                             
-                            if (diffDays <= DIAS_DE_VALIDADE) { 
-                                const diasRestantes = Math.floor(DIAS_DE_VALIDADE - diffDays);
-                                const diasTexto = diasRestantes === 0 ? ' (expira hoje)' : ` (${diasRestantes} dia(s) restantes)`;
-                                offlineMsg.textContent = `Acesso offline (último login como ${lastRole}) válido${diasTexto}.`;
-                                offlineBtn.style.display = 'block';
-                                offlineBtn.onclick = window.handleOfflineLogin;
-                            } else {
-                                offlineMsg.textContent = "Seu acesso offline expirou. Conecte-se à internet para renovar.";
-                                offlineBtn.style.display = 'none';
+                            const userRole = session.user.user_metadata?.role || ROLES.PROFESSOR; 
+                            window.appState.userRole = userRole;
+                            window.appState.isAdmin = (userRole === ROLES.ADMIN);
+                            window.appState.isUser = (userRole === ROLES.USER);
+                            window.appState.isProfessor = (userRole === ROLES.PROFESSOR);
+                            
+                            console.log(`Utilizador logado (${session.user.email}). Role: ${userRole}.`);
+                            
+                            const lastRole = localStorage.getItem('lastOnlineLoginRole');
+                            
+                            if (navigator.onLine && lastRole && lastRole !== userRole) {
+                                console.warn(`MUDANÇA DE ROLE DETECTADA. Limpando cache.`);
+                                window.showToast('Perfil diferente detectado. Limpando cache local...', 'success');
+                                await window.dbCacheManager.clearStores(['alunos', 'fotos_detalhe', 'atestados', 'ocorrencias']);
                             }
-                        } else if (offlineMsg) {
-                            offlineMsg.textContent = "Faça login online pelo menos uma vez para ativar o acesso offline.";
+                        
+                            localStorage.setItem('lastOnlineLoginRole', userRole);
+                            localStorage.setItem('lastOnlineLoginTimestamp', new Date().toISOString());
+                            
+                            setTimeout(processarCaixasDeSaida, 1500); 
+                            
+                            const savedSignature = localStorage.getItem('lastUserSignature');
+                            window.appState.userSignature = savedSignature; 
+                            
+                            if (!window.appState.isAdmin && !savedSignature) {
+                                window.openModal('nameEntryModal');
+                            } else {
+                                loadApp(false); 
+                            }
+                        
+                        } else if (event === 'SIGNED_OUT') { 
+                            
+                            Object.assign(window.appState, {
+                                isLoggedIn: false, isAdmin: false, isUser: false, isProfessor: false,
+                                isReadOnly: false, userEmail: null, userId: null, userSignature: null,
+                                userRole: ROLES.PROFESSOR,
+                                alunosData: [], turmasData: [], mensagensData: [],
+                                publicAlunosData: new Map(), privateAlunosData: new Map(),
+                                fotosData: new Map(), atestadosData: new Map(), ocorrenciasData: new Map()
+                            });
+                            
+                            if (listenersIniciados) {
+                                subscriptions.forEach(sub => sub.unsubscribe());
+                                subscriptions = [];
+                                listenersIniciados = false;
+                            }
+                            
+                            if (loginScreen) loginScreen.style.display = 'flex'; 
+                            if (appContainer) appContainer.style.display = 'none';
+                            if (contentContainer) contentContainer.style.display = 'none';
+                            
+                            const emailInput = document.getElementById('loginEmail');
+                            const passInput = document.getElementById('loginPassword');
+                            if(emailInput) emailInput.value = '';
+                            if(passInput) passInput.value = '';
+                            
+                            // Lógica do Passaporte Offline
+                            try {
+                                const lastRole = localStorage.getItem('lastOnlineLoginRole');
+                                const lastTimestamp = localStorage.getItem('lastOnlineLoginTimestamp');
+                                const offlineBtn = document.getElementById('offlineLoginButton');
+                                const offlineMsg = document.getElementById('offlineLoginMessage');
+                                
+                                if (lastRole && lastTimestamp && offlineBtn && offlineMsg) {
+                                    const now = new Date();
+                                    const lastLoginDate = new Date(lastTimestamp);
+                                    const diffMs = now.getTime() - lastLoginDate.getTime();
+                                    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+                                    
+                                    const DIAS_DE_VALIDADE = 7; // 7 DIAS
+                                    
+                                    if (diffDays <= DIAS_DE_VALIDADE) { 
+                                        const diasRestantes = Math.floor(DIAS_DE_VALIDADE - diffDays);
+                                        const diasTexto = diasRestantes === 0 ? ' (expira hoje)' : ` (${diasRestantes} dia(s) restantes)`;
+                                        offlineMsg.textContent = `Acesso offline (último login como ${lastRole}) válido${diasTexto}.`;
+                                        offlineBtn.style.display = 'block';
+                                        offlineBtn.onclick = window.handleOfflineLogin;
+                                    } else {
+                                        offlineMsg.textContent = "Seu acesso offline expirou. Conecte-se à internet para renovar.";
+                                        offlineBtn.style.display = 'none';
+                                    }
+                                } else if (offlineMsg) {
+                                    offlineMsg.textContent = "Faça login online pelo menos uma vez para ativar o acesso offline.";
+                                }
+                            } catch (e) {
+                                console.error("Erro ao verificar login offline:", e);
+                            }
+                            
                         }
-                    } catch (e) {
-                        console.error("Erro ao verificar login offline:", e);
-                    }
-                    
-                }
-             } catch (e) { console.error("ERRO CRÍTICO em onAuthStateChanged:", e); }
-        });
-
+                     } catch (e) { console.error("ERRO CRÍTICO em onAuthStateChanged:", e); }
+                });
 
             } catch (authError) {
                 console.error("Erro CRÍTICO ao inicializar o app:", authError);
@@ -1648,18 +1585,19 @@ function populateTurmaSelect(elementId, selectedValue) {
              if (contentContainer) contentContainer.style.display = 'block';
             
             // 1. CARREGAR DADOS DO CACHE MANUAL IMEDIATAMENTE
-            // (A conexão já foi garantida pelo 'iniciarServicosEAutenticacao')
             try {
                 console.log("Carregando dados do Cache Manual...");
                 
                 const turmas = await window.dbCacheManager.readData('turmas');
                 const alunos = await window.dbCacheManager.readData('alunos'); 
                 const fotos = await window.dbCacheManager.readData('fotos_detalhe');
+                const atestados = await window.dbCacheManager.readData('atestados');
                 const ocorrencias = await window.dbCacheManager.readData('ocorrencias');
 
                 if (turmas) window.appState.turmasData = turmas;
                 if (alunos) window.appState.alunosData = alunos;
                 if (fotos) window.appState.fotosData = new Map(fotos.map(f => [f.id, f.fotoBase64]));
+                if (atestados) window.appState.atestadosData = new Map(atestados.map(a => [a.aluno_id, [...(window.appState.atestadosData.get(a.aluno_id) || []), a]]));
                 if (ocorrencias) window.appState.ocorrenciasData = new Map(ocorrencias.map(o => [o.aluno_id, [...(window.appState.ocorrenciasData.get(o.aluno_id) || []), o]]));
 
                 console.log(`Cache: ${turmas.length} turmas, ${alunos.length} alunos.`);
@@ -1687,7 +1625,7 @@ function populateTurmaSelect(elementId, selectedValue) {
         // 7. Chamamos a nova função para iniciar o processo
         iniciarServicosEAutenticacao();
         
-    // --- Funções Admin, FAB e Seleção Múltipla ---
+        // --- Funções Admin, FAB e Seleção Múltipla (Mantido da base de produção) ---
         function updateAdminUI() {
              const { isAdmin, isUser, isReadOnly, currentTab, isSelectionModeActive } = window.appState;
              const isAlunosTab = currentTab === 'alunos';
@@ -1744,13 +1682,1139 @@ function populateTurmaSelect(elementId, selectedValue) {
              else if (currentTab === 'mensagens') window.renderMensagens();
              else if (currentTab === 'relatorios') window.renderRelatorios();
         }
+        
+        window.toggleSelectionMode = () => {
+             if (!window.appState.isAdmin || window.appState.isReadOnly || window.appState.currentTab !== 'alunos') return; 
+             window.appState.isSelectionModeActive = !window.appState.isSelectionModeActive;
+             const selBtn = document.getElementById('selectBtn'); 
+             if(!selBtn) return;
+             if (window.appState.isSelectionModeActive) {
+                 selBtn.innerHTML = '<span class="material-icons-outlined">cancel</span> Cancelar';
+                 selBtn.classList.add('active');
+                 selBtn.style.backgroundColor = '#f44336'; selBtn.style.borderColor = '#f44336';
+                 window.appState.selectedAlunoIds = []; 
+             } else {
+                 selBtn.innerHTML = '<span class="material-icons-outlined">select_all</span>';
+                 selBtn.classList.remove('active');
+                 selBtn.style.backgroundColor = ''; selBtn.style.borderColor = ''; // Reseta estilo
+                 window.appState.selectedAlunoIds = [];
+             }
+             updateAdminUI();
+        }
+        
+        window.toggleAlunoSelection = (alunoId) => { 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) {
+                window.showAlunoDetail(alunoId);
+                return;
+            }
+            if (!window.appState.isSelectionModeActive) { 
+                window.showAlunoDetail(alunoId); 
+                return; 
+            } 
+            
+            const card = document.querySelector(`.card[data-aluno-id="${alunoId}"]`); 
+            const index = window.appState.selectedAlunoIds.indexOf(alunoId);
+            if (index > -1) { 
+                window.appState.selectedAlunoIds.splice(index, 1); 
+                card?.classList.remove('selected'); 
+            } else { 
+                window.appState.selectedAlunoIds.push(alunoId); 
+                card?.classList.add('selected'); 
+            }
+            updateDeleteButtonCount(); 
+        }
+        function updateDeleteButtonCount() { 
+            const btn = document.getElementById('deleteSelectedBtn'); 
+            if (!btn) return;
+            const count = window.appState.selectedAlunoIds.length;
+            btn.innerHTML = `<span class="material-icons-outlined">delete</span> Excluir (${count})`;
+            btn.style.display = (window.appState.isAdmin && window.appState.isSelectionModeActive && !window.appState.isReadOnly && count > 0) ? 'flex' : 'none';
+        }
+        window.deleteSelectedAlunos = async () => { 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            const ids = window.appState.selectedAlunoIds; const count = ids.length; 
+            if (!window.appState.isSelectionModeActive || count === 0) return; 
+            if (confirm(`Excluir ${count} aluno(s) selecionado(s)? Esta ação é permanente e excluirá todos os registros associados.`)) { 
+                const sync = document.getElementById('syncStatus'); if(sync) sync.classList.add('active'); 
+                try { 
+                    const { error } = await db.from('alunos_publico').delete().in('id', ids);
+                    if (error) throw error;
+                    
+                    for (const id of ids) {
+                        await window.dbCacheManager.deleteSingleData('fotos_detalhe', id); 
+                    }
+                    
+                    window.showToast(`${count} aluno(s) excluído(s).`, 'success'); 
+                    window.toggleSelectionMode(); 
+                } catch (e) { 
+                    console.error("Erro ao excluir seleção:", e.message); 
+                    window.showToast(`Erro ao excluir seleção: ${e.message}`, 'error'); 
+                } 
+                finally { if(sync) sync.classList.remove('active'); } 
+            } 
+        }
+        window.openAddModal = () => { 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            if (window.appState.isSelectionModeActive) return; 
+            if (window.appState.currentTab === 'alunos') {
+                 window.appState.editingAlunoId = null; 
+                 const title = document.getElementById('alunoModalTitle'); if(title) title.textContent = 'Adicionar Aluno';
+                 const form = document.getElementById('alunoForm'); if(form) form.reset(); 
+                 const delBtn = document.getElementById('deleteAlunoBtn'); if(delBtn) delBtn.style.display = 'none'; 
+                 const photoC = document.getElementById('currentPhotoContainer'); if(photoC) photoC.style.display = 'none';
+                 const migracaoC = document.getElementById('migracaoContainer'); if(migracaoC) migracaoC.style.display = 'none'; 
+                 document.getElementById('alunoFotoThumb').value = ''; 
+                 document.getElementById('alunoFotoUpload').value = ''; 
+                 populateTurmaSelect('alunoTurma'); window.openModal('alunoModal');
+            } else if (window.appState.currentTab === 'turmas') {
+                 window.appState.editingTurmaId = null; 
+                 const title = document.getElementById('turmaModalTitle'); if(title) title.textContent = 'Adicionar Turma';
+                 const form = document.getElementById('turmaForm'); if(form) form.reset(); 
+                 const delBtn = document.getElementById('deleteTurmaBtn'); if(delBtn) delBtn.style.display = 'none'; 
+                 window.openModal('turmaModal');
+            }
+        }
+        function populateTurmaSelect(selectId, selectedValue = '') { 
+            const select = document.getElementById(selectId); if (!select) return;
+            select.innerHTML = '<option value="">Selecione...</option>';
+            if (window.appState.turmasData.length === 0) { select.innerHTML = '<option value="">Nenhuma turma encontrada...</option>'; return; } 
+            const sortedTurmas = [...window.appState.turmasData].sort((a, b) => (a.nome||'').localeCompare(b.nome||''));
+            sortedTurmas.forEach(turma => {
+                const option = document.createElement('option'); option.value = turma.nome; option.textContent = turma.nome;
+                if (turma.nome === selectedValue) { option.selected = true; }
+                select.appendChild(option);
+            });
+        }
+        window.removeCurrentPhoto = () => { 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            const thumbInput = document.getElementById('alunoFotoThumb'); 
+            if(thumbInput) thumbInput.value=''; 
+            
+            const fileInput = document.getElementById('alunoFotoUpload');
+            if(fileInput) fileInput.value = ''; 
+            
+            const photoC = document.getElementById('currentPhotoContainer'); 
+            if(photoC) photoC.style.display='none'; 
+        }
 
+        // --- Backup e Importar (Admin) ---
+        // ATUALIZADO: Funções de exportação para XLSX
+        window.showBackupOptions = () => { if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error'); window.openModal('backupModal'); }
+        
+        window.exportAlunosXLSX = () => {
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return;
+            const data = window.appState.alunosData;
+            if (data.length === 0) return window.showToast('Sem alunos para exportar.', 'error');
+            
+            // Define a ordem e o nome dos cabeçalhos
+            const headers = [
+                'id', 'nome', 'matricula', 'diario', 'turma', 'status', 'nascimento', 'cpf', 'telefone',
+                'responsavel1Nome', 'responsavel1Tipo', 'responsavel1Tel',
+                'responsavel2Nome', 'responsavel2Tipo', 'responsavel2Tel',
+                'pcd', 'provaDif', 'monitorias', 'projetos', 'fotoThumb', // CORRIGIDO: provaDif
+                'obs1', 'dispensas', 'notificacoes', 'advertencias', 'suspencoes', 'obs2' // CORRIGIDO: suspencoes
+            ];
+            
+            // Mapeia os dados para garantir a ordem
+            const dataToExport = data.map(aluno => {
+                let row = {};
+                headers.forEach(header => {
+                    // Correção manual para nomes inconsistentes
+                    if (header === 'provaDif') {
+                        row[header] = aluno['provaDif'] || ''; // Nome corrigido do DB
+                    } else if (header === 'suspencoes') {
+                        row[header] = aluno['suspencoes'] || ''; // Nome corrigido do DB
+                    } else {
+                        row[header] = aluno[header] || '';
+                    }
+                });
+                return row;
+            });
+            
+            const ws = XLSX.utils.json_to_sheet(dataToExport, { header: headers });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Alunos");
+            XLSX.writeFile(wb, `backup_alunos_${new Date().toISOString().split('T')[0]}.xlsx`);
+            
+            window.showToast('Exportando Alunos...', 'success');
+            window.closeModal('backupModal');
+        }
+
+        window.exportTurmasXLSX = () => {
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return;
+            const data = window.appState.turmasData;
+            if (data.length === 0) return window.showToast('Sem turmas para exportar.', 'error');
+            
+            const headers = ['id', 'nome', 'serie', 'obs'];
+            
+            const dataToExport = data.map(turma => ({
+                id: turma.id,
+                nome: turma.nome,
+                serie: turma.serie,
+                obs: turma.obs
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport, { header: headers });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Turmas");
+            XLSX.writeFile(wb, `backup_turmas_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+            window.showToast('Exportando Turmas...', 'success');
+            window.closeModal('backupModal');
+        }
+        
+        // MANTIDO: Funções de importação da sua base de produção (corretas para tabelas divididas)
+        window.showImportModal = () => { if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error'); const fi=document.getElementById('csvFileInput'); if(fi)fi.value=''; const st=document.getElementById('importStatus'); if(st)st.textContent=''; window.openModal('importModal'); }
+        window.handleImport = () => { if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error'); const fi=document.getElementById('csvFileInput'), it=document.getElementById('importType')?.value, st=document.getElementById('importStatus'); if (!fi || !it || !st) return; if(!fi.files || fi.files.length===0) return window.showToast('Selecione um arquivo CSV.','error'); const f=fi.files[0], r=new FileReader(); st.textContent='A ler arquivo...'; r.onload = async (e)=>{ const txt = e.target.result; try { const d = parseCSV(txt); if (d.length === 0) throw new Error("Nenhuma linha de dados encontrada."); st.textContent = `${d.length} linhas encontradas. A importar...`; await processImport(d,it); st.textContent = `Sucesso! ${d.length} registos importados.`; window.showToast(`Importado ${d.length} ${it}!`, 'success'); setTimeout(() => window.closeModal('importModal'), 1000); } catch (err) { console.error("Erro na importação:", err); st.textContent=`Erro: ${err.message}`; window.showToast(`Erro: ${err.message}`, 'error'); }}; r.onerror=()=>{st.textContent='Erro ao ler o arquivo.';window.showToast('Erro ao ler o arquivo.', 'error');}; r.readAsText(f); }
+        
+        // CORRIGIDO: Bugs 1 (provaDif, suspencoes)
+        function parseCSV(t){ const l=t.replace(/\r/g,'').split('\n').filter(Boolean); if(l.length < 1) throw new Error("CSV vazio ou inválido."); const h=l[0].split(',').map(x=>x.trim()); if(h.length===0||(h.length===1&&h[0]==='')) throw new Error("Header (cabeçalho) inválido."); const d=[]; for(let i=1;i<l.length;i++){ const v=l[i].split(','); if (v.length !== h.length) { console.warn(`Linha ${i+1} ignorada: número de colunas (${v.length}) diferente do header (${h.length}).`); continue; } let o={}; for(let j=0;j<h.length;j++){ const hdr=h[j]; if (!hdr) continue; let val=v[j]?v[j].trim():''; if (val.startsWith('"') && val.endsWith('"')) { val = val.substring(1, val.length - 1).replace(/""/g, '"'); } 
+            
+            // Correção para booleanos
+            if(hdr==='pcd') val=(val.toLowerCase()==='true'); 
+            if(hdr==='provaDif') val=(val.toLowerCase()==='true'); // CORRIGIDO: camelCase
+            
+            // Correção para nome de coluna
+            if(hdr==='suspencoes') { // CORRIGIDO: 'c'
+                o['suspencoes'] = val; // CORRIGIDO: 'c'
+            } else {
+                o[hdr]=val; 
+            }
+        } d.push(o); } return d; }
+        
+        // CORRIGIDO: Bugs 1 (provaDif, suspencoes) e 6 (fotoThumb)
+        async function processImport(data, type){ 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) throw new Error('Sem permissão.'); 
+            
+            if (type === 'turmas') {
+                const turmasParaSalvar = data.map(item => ({
+                    nome: item.nome,
+                    serie: item.serie,
+                    obs: item.obs
+                })).filter(Boolean);
+                
+                console.log("Importando turmas:", turmasParaSalvar);
+                const { error } = await db.from('turmas').insert(turmasParaSalvar);
+                if (error) throw new Error(`Erro ao salvar turmas: ${error.message}`);
+                
+            } else { 
+                const alunosPublico = [];
+                const alunosPrivado = [];
+                
+                data.forEach(item => {
+                    alunosPublico.push({
+                        nome: item.nome, 
+                        matricula: item.matricula, 
+                        turma: item.turma,
+                        pcd: item.pcd || false, 
+                        projetos: item.projetos || null, 
+                        monitorias: item.monitorias || null,
+                        fotoThumb: item.fotoThumb || null // CORRIGIDO (Bug 6)
+                    });
+                    
+                    alunosPrivado.push({
+                        diario: item.diario,
+                        status: item.status,
+                        nascimento: item.nascimento || null,
+                        cpf: item.cpf,
+                        telefone: item.telefone,
+                        responsavel1Nome: item.responsavel1Nome,
+                        responsavel1Tipo: item.responsavel1Tipo,
+                        responsavel1Tel: item.responsavel1Tel,
+                        responsavel2Nome: item.responsavel2Nome,
+                        responsavel2Tipo: item.responsavel2Tipo,
+                        responsavel2Tel: item.responsavel2Tel,
+                        provaDif: item.provaDif || false, // CORRIGIDO (Bug 1)
+                        // fotoThumb removido daqui (Bug 6)
+                        obs1: item.obs1,
+                        dispensas: item.dispensas,
+                        notificacoes: item.notificacoes,
+                        advertencias: item.advertencias,
+                        suspencoes: item.suspencoes || null, // CORRIGIDO (Bug 1)
+                        obs2: item.obs2
+                    });
+                });
+
+                console.log(`Importando ${alunosPublico.length} alunos (público)...`);
+                const { data: publicResult, error: publicError } = await db.from('alunos_publico').insert(alunosPublico).select('id'); 
+                if (publicError) throw new Error(`Erro ao salvar em alunos_publico: ${publicError.message}`);
+                
+                const alunosPrivadoComId = alunosPrivado.map((item, index) => {
+                    const newId = publicResult[index]?.id;
+                    if (!newId) {
+                        console.warn("Item privado não encontrou ID público correspondente, pulando:", item);
+                        return null;
+                    }
+                    return { ...item, aluno_id: newId };
+                }).filter(Boolean); 
+                
+                console.log(`Importando ${alunosPrivadoComId.length} alunos (privado)...`);
+                const { error: privateError } = await db.from('alunos_privado').insert(alunosPrivadoComId);
+                if (privateError) throw new Error(`Erro ao salvar em alunos_privado: ${privateError.message}`);
+            }
+        }
+        
+        // --- Navegação Detalhes (Próx/Ant) ---
+        window.showNextAluno = () => { const i = window.appState.currentAlunoIndex, d = window.appState.filteredAlunos; if (d && i < d.length - 1) window.showAlunoDetail(d[i + 1].id, true); };
+        window.showPrevAluno = () => { const i = window.appState.currentAlunoIndex, d = window.appState.filteredAlunos; if (d && i > 0) window.showAlunoDetail(d[i - 1].id, true); };
+        window.showNextTurma = () => { const i = window.appState.currentTurmaIndex, d = window.appState.filteredTurmas; if (d && i < d.length - 1) window.showTurmaDetail(d[i + 1].id, true); };
+        window.showPrevTurma = () => { const i = window.appState.currentTurmaIndex, d = window.appState.filteredTurmas; if (d && i > 0) window.showTurmaDetail(d[i - 1].id, true); };
+        
+        // --- Lógica de Fotos (Base64) ---
+        function generateResizedBase64(file, maxSize, quality = 0.8) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxSize) { height *= maxSize / width; width = maxSize; }
+                        } else {
+                            if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // --- Busca foto de detalhe (com cache) ---
+        // CORRIGIDO: Bug 2 (fotoBase64 -> fotoBase64)
+        async function fetchDetailPhoto(alunoId) {
+            const imgEl = document.getElementById(`detail-photo-${alunoId}`);
+            if (!imgEl) return; 
+            
+            try {
+                let cachedPhoto = window.appState.fotosData.get(alunoId);
+                if (cachedPhoto) {
+                    console.log(`Foto de detalhe [${alunoId}] carregada do estado.`);
+                    imgEl.src = cachedPhoto;
+                    return;
+                }
+                
+                const cachedItem = await window.dbCacheManager.readSingleData('fotos_detalhe', alunoId);
+                if (cachedItem && cachedItem.fotoBase64) { // CORRIGIDO
+                    console.log(`Foto de detalhe [${alunoId}] carregada do IndexedDB.`);
+                    imgEl.src = cachedItem.fotoBase64; // CORRIGIDO
+                    window.appState.fotosData.set(alunoId, cachedItem.fotoBase64); // CORRIGIDO
+                    return;
+                }
+                
+                if (navigator.onLine && !window.appState.isReadOnly) {
+                    console.log(`Foto [${alunoId}] não encontrada no cache. Buscando no Supabase...`);
+                    const { data, error } = await db.from('fotos_alunos').select('fotoBase64').eq('aluno_id', alunoId).single(); // CORRIGIDO
+                    
+                    if (error) throw error;
+                    
+                    if (data && data.fotoBase64) { // CORRIGIDO
+                        imgEl.src = data.fotoBase64; // CORRIGIDO
+                        const cacheItem = { id: alunoId, fotoBase64: data.fotoBase64 }; // CORRIGIDO
+                        await window.dbCacheManager.writeSingleData('fotos_detalhe', cacheItem);
+                        window.appState.fotosData.set(alunoId, data.fotoBase64); // CORRIGIDO
+                    } else {
+                        console.log(`Não há foto de detalhe para [${alunoId}].`);
+                    }
+                }
+            } catch (e) {
+                if (e.code !== 'PGRST116') { // Ignora erros 'not found'
+                    console.error("Erro ao buscar foto de detalhe:", e);
+                }
+            }
+        }
+        
+
+//BLOCO 4 =================
+
+        // =======================================================
+        // --- CRUD ALUNOS (Base: Produção / Correções: Bug 1, 2, 6) ---
+        // =======================================================
+
+        window.saveAluno = async (event) => { 
+            event.preventDefault(); 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            
+            const form = event.target; if(!form) return; 
+            const saveBtn = document.getElementById('saveAlunoBtn');
+            const syncStatus = document.getElementById('syncStatus'); 
+            
+            if(saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "A salvar..."; }
+            if(syncStatus) syncStatus.classList.add('active'); 
+
+            try {
+                const alunoId = window.appState.editingAlunoId || crypto.randomUUID(); 
+                
+                let fotoThumbFinal = document.getElementById('alunoFotoThumb').value || null; 
+                let fotoDetalheFinal = null; 
+                let fotoMudou = false;
+                
+                const newFotoFile = document.getElementById('alunoFotoUpload').files[0];
+                
+                if (newFotoFile) {
+                    if (newFotoFile.size > 2 * 1024 * 1024) throw new Error("O arquivo de foto é muito grande (máx 2MB).");
+                    
+                    console.log("Nova foto detectada. Redimensionando...");
+                    if(saveBtn) saveBtn.textContent = "A processar foto...";
+                    
+                    fotoThumbFinal = await generateResizedBase64(newFotoFile, 64, 0.7); 
+                    fotoDetalheFinal = await generateResizedBase64(newFotoFile, 260, 0.85); 
+                    fotoMudou = true;
+                } else if (fotoThumbFinal === null || fotoThumbFinal === '') {
+                    // Foto foi removida
+                    fotoMudou = true;
+                }
+                
+                if(saveBtn) saveBtn.textContent = "A salvar dados...";
+                
+                // Arquitetura de tabelas divididas (Correta)
+                const publicData = { 
+                    nome: form.alunoNome.value.trim(), 
+                    matricula: form.alunoMatricula.value.trim(), 
+                    turma: form.alunoTurma.value, 
+                    pcd: form.alunoPCD.value === 'true',
+                    projetos: form.alunoProjetos.value.trim() || null, 
+                    monitorias: form.alunoMonitorias.value.trim() || null,
+                    fotoThumb: fotoThumbFinal // Correto (Bug 6)
+                };
+
+                const privateData = {
+                    diario: form.alunoDiario.value.trim() || null, 
+                    status: form.alunoStatus.value, 
+                    nascimento: form.alunoNascimento.value || null, 
+                    cpf: form.alunoCPF.value.trim() || null, 
+                    telefone: form.alunoTelefone.value.trim() || null, 
+                    responsavel1Nome: form.alunoResponsavel1Nome.value.trim() || null, 
+                    responsavel1Tipo: form.alunoResponsavel1Tipo.value || null, 
+                    responsavel1Tel: form.alunoResponsavel1Tel.value.trim() || null, 
+                    responsavel2Nome: form.alunoResponsavel2Nome.value.trim() || null, 
+                    responsavel2Tipo: form.alunoResponsavel2Tipo.value || null, 
+                    responsavel2Tel: form.alunoResponsavel2Tel.value.trim() || null, 
+                    provaDif: form.alunoProvaDif.value === 'true' // CORRIGIDO (Bug 1)
+                };
+                
+                const { error: publicError } = await db.from('alunos_publico').upsert({ id: alunoId, ...publicData });
+                if (publicError) throw publicError;
+                
+                const { error: privateError } = await db.from('alunos_privado').upsert({ aluno_id: alunoId, ...privateData });
+                if (privateError) throw privateError;
+                
+                if (fotoMudou) {
+                    if (fotoDetalheFinal) { 
+                        // CORRIGIDO (Bug 2)
+                        const { error: fotoError } = await db.from('fotos_alunos').upsert({ aluno_id: alunoId, fotoBase64: fotoDetalheFinal });
+                        if (fotoError) throw fotoError;
+                        await window.dbCacheManager.writeSingleData('fotos_detalhe', { id: alunoId, fotoBase64: fotoDetalheFinal });
+                        window.appState.fotosData.set(alunoId, fotoDetalheFinal);
+                    } else { 
+                        await db.from('fotos_alunos').delete().eq('aluno_id', alunoId);
+                        await window.dbCacheManager.deleteSingleData('fotos_detalhe', alunoId);
+                        window.appState.fotosData.delete(alunoId);
+                    }
+                }
+
+                window.showToast(window.appState.editingAlunoId ? 'Aluno atualizado!' : 'Aluno adicionado!', 'success');
+                window.closeModal('alunoModal'); 
+
+            } catch (error) { 
+                console.error("Erro ao salvar Aluno:", error); 
+                window.showToast(`Erro ao salvar: ${error.message}`, 'error');
+            } 
+            finally { 
+                if(syncStatus) syncStatus.classList.remove('active'); 
+                if(saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Salvar"; }
+            } 
+        }
+        
+        window.openEditAlunoModal = (alunoId) => { 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            if (window.appState.isSelectionModeActive) return; 
+            
+            const aluno = window.appState.alunosData.find(a => a.id === alunoId); 
+            if (!aluno) return window.showToast('Aluno não encontrado.', 'error'); 
+            
+            window.appState.editingAlunoId = alunoId; 
+            const title = document.getElementById('alunoModalTitle'); if(title) title.textContent = 'Editar Aluno'; 
+            const form = document.getElementById('alunoForm'); if(!form) return; 
+            populateTurmaSelect('alunoTurma', aluno.turma); 
+            
+            // Dados Públicos
+            form.alunoNome.value = aluno.nome || ''; 
+            form.alunoMatricula.value = aluno.matricula || ''; 
+            form.alunoPCD.value = aluno.pcd ? 'true' : 'false';
+            form.alunoMonitorias.value = aluno.monitorias || '';
+            form.alunoProjetos.value = aluno.projetos || '';
+            
+            // Dados Privados
+            form.alunoDiario.value = aluno.diario || ''; 
+            form.alunoStatus.value = aluno.status || 'Matriculado'; 
+            form.alunoNascimento.value = aluno.nascimento || ''; 
+            form.alunoCPF.value = aluno.cpf || ''; 
+            form.alunoTelefone.value = aluno.telefone || ''; 
+            form.alunoResponsavel1Nome.value = aluno.responsavel1Nome || ''; 
+            form.alunoResponsavel1Tipo.value = aluno.responsavel1Tipo || ''; 
+            form.alunoResponsavel1Tel.value = aluno.responsavel1Tel || ''; 
+            form.alunoResponsavel2Nome.value = aluno.responsavel2Nome || ''; 
+            form.alunoResponsavel2Tipo.value = aluno.responsavel2Tipo || ''; 
+            form.alunoResponsavel2Tel.value = aluno.responsavel2Tel || ''; 
+            form.alunoProvaDif.value = aluno.provaDif ? 'true' : 'false'; // CORRIGIDO (Bug 1)
+            
+            const thumbInput = document.getElementById('alunoFotoThumb');
+            const newFotoInput = document.getElementById('alunoFotoUpload');
+            const photoC = document.getElementById('currentPhotoContainer');
+            const photoP = document.getElementById('currentPhotoPreview');
+            
+            newFotoInput.value = ''; 
+            
+            thumbInput.value = aluno.fotoThumb || ''; 
+            if (photoC && photoP) {
+                if (aluno.fotoThumb) { 
+                    photoC.style.display='block'; 
+                    photoP.src = aluno.fotoThumb;
+                } else { 
+                    photoC.style.display='none'; 
+                } 
+            }
+            
+            // Campos de Migração (privados)
+            const migracaoC = document.getElementById('migracaoContainer'); 
+            if(migracaoC) migracaoC.style.display = 'block'; 
+            form.alunoObs1.value = aluno.obs1 || ''; 
+            form.alunoDispensas.value = aluno.dispensas || ''; 
+            form.alunoNotificacoes.value = aluno.notificacoes || ''; 
+            form.alunoAdvertencias.value = aluno.advertencias || ''; 
+            form.alunoSuspensoes.value = aluno.suspencoes || ''; // CORRIGIDO (Bug 1)
+            form.alunoObs2.value = aluno.obs2 || ''; 
+            
+            const delBtn = document.getElementById('deleteAlunoBtn'); if(delBtn) delBtn.style.display = 'block'; 
+            window.openModal('alunoModal'); 
+        }
+        
+        window.deleteAluno = async () => { 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            if (!window.appState.editingAlunoId) return; 
+            const alunoId = window.appState.editingAlunoId;
+            if (confirm('Tem certeza que deseja excluir este aluno? Esta ação é permanente e excluirá todos os registros associados (ocorrências, atestados, etc).')) { 
+                const s = document.getElementById('syncStatus'); if(s)s.classList.add('active'); 
+                try { 
+                    const { error } = await db.from('alunos_publico').delete().eq('id', alunoId);
+                    if (error) throw error;
+                    
+                    await window.dbCacheManager.deleteSingleData('fotos_detalhe', alunoId); 
+                    window.appState.fotosData.delete(alunoId);
+                    
+                    window.showToast('Aluno excluído.', 'success'); 
+                    window.closeModal('alunoModal'); 
+                } 
+                catch (e) { 
+                    console.error("Erro ao excluir Aluno:", e); 
+                    window.showToast(`Erro ao excluir aluno: ${e.message}`, 'error'); 
+                } 
+                finally { if(s)s.classList.remove('active'); } 
+            } 
+        }
+
+        // --- Lógica do Modal de Detalhes (Correções: Bug 1 e 5) ---
+        
+        const cDr = (l, v, h=false) => { 
+            const valStr = String(v || '').trim(); 
+            if (valStr === '' || valStr === 'N/D') return ''; 
+            
+            let vc = 'detail-value'; 
+            let valHtml = '';
+            
+            if (l.toLowerCase().includes('tel') || l.toLowerCase().includes('cont.')) {
+                valHtml = `<span>${escapeHTML(valStr)}</span>`; 
+                h = true;
+            } else if (valStr.length > 100 || valStr.includes('\n') || l.toLowerCase().includes('obs')) {
+                vc = 'detail-text-area'; 
+                valHtml = escapeHTML(valStr).replace(/\n/g, '<br>');
+                h = true;
+            } else {
+                valHtml = h ? v : escapeHTML(valStr);
+            }
+            return `<div class="detail-row"><div class="detail-label">${escapeHTML(l)}</div><div class="${vc}">${valHtml}</div></div>`; 
+        };
+        
+        function renderHistoricoAtestados(alunoId) {
+            const atestados = window.appState.atestadosData.get(alunoId) || [];
+            if (atestados.length === 0) {
+                return '<div class="detail-row"><div class="detail-value">Nenhum atestado registrado.</div></div>';
+            }
+            atestados.sort((a, b) => new Date(b.dataInicio || b.created_at) - new Date(a.dataInicio || a.created_at)); 
+            
+            return atestados.map(item => `
+                <div class="report-feed-item tipo-atestado" style="border-width: 3px; margin-bottom: 5px; padding: 8px;">
+                    <div class="report-item-header">
+                        <span class="report-item-aluno" style="font-size: 13px;">De ${formatDate(item.dataInicio)} até ${formatDate(item.dataFim)}</span>
+                    </div>
+                    ${item.detalhes ? `<div class="report-item-body" style="font-size: 12px;">${escapeHTML(item.detalhes)}</div>` : ''}
+                    <div class="report-item-footer" style="font-size: 10px;">Reg. por: ${escapeHTML(item.registradoPor)} em ${formatarDataHora(item.created_at)}</div>
+                </div>
+            `).join('');
+        }
+        
+        // CORRIGIDO: Bug 5 (levou_registro, livro_ocorrencia)
+        function renderHistoricoDisciplinar(alunoId) {
+            const ocorrencias = window.appState.ocorrenciasData.get(alunoId) || [];
+            if (ocorrencias.length === 0) {
+                return '<div class="detail-row"><div class="detail-value">Nenhum registro disciplinar encontrado.</div></div>';
+            }
+            ocorrencias.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); 
+            
+            return ocorrencias.map(item => {
+                let tipoClasse = 'tipo-ocorrencia';
+                // CORRIGIDO: usa tipo_registro (que vem da nossa nova constante) ou 'tipo' (legado)
+                let tipoLabel = item.tipo_registro || item.tipo; 
+                
+                if (tipoLabel === 'Dispensa') tipoClasse = 'tipo-dispensa';
+                
+                let detalhes = '';
+                // CORRIGIDO: usa 'comentario' (novo) ou 'detalhes' (legado)
+                const comentario = item.comentario || item.detalhes;
+                if(comentario) detalhes += escapeHTML(comentario);
+                
+                // CORRIGIDO: usa 'levou_registro' (novo) ou 'levou_registro_fisico' (legado)
+                if(item.levou_registro || item.levou_registro_fisico) detalhes += '<br><b>[Levou registro físico]</b>';
+                if(item.status_devolucao) detalhes += `<br><b>[Devolução: ${escapeHTML(item.status_devolucao)}]</b>`;
+
+                // CORRIGIDO: usa 'tipo_secundario' (novo) ou 'motivo' (legado)
+                const motivo = item.tipo_secundario || item.motivo;
+                
+                // CORRIGIDO: usa 'livro_ocorrencia' (novo) ou 'refLivro' (legado)
+                const refLivro = item.livro_ocorrencia || item.refLivro;
+
+                return `
+                <div class="report-feed-item ${tipoClasse} ${item.status === 'desativada' ? 'status-desativada' : ''}" style="border-width: 3px; margin-bottom: 5px; padding: 8px;">
+                    <div class="report-item-header">
+                        <span class="report-item-aluno" style="font-size: 13px;">${escapeHTML(motivo)}</span>
+                        <span class="report-item-tipo" style="font-size: 10px;">${escapeHTML(tipoLabel)}</span>
+                    </div>
+                    ${detalhes ? `<div class="report-item-body" style="font-size: 12px;">${detalhes}</div>` : ''}
+                    <div class="report-item-footer" style="font-size: 10px;">
+                        <span>Reg. por: ${escapeHTML(item.registradoPor)} em ${formatarDataHora(item.created_at)}</span>
+                        ${refLivro ? `<span>Livro: ${escapeHTML(refLivro)}</span>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.showAlunoDetail = (alunoId, skipAnimation = false) => { 
+            if (window.appState.isSelectionModeActive) return; 
+            
+            const aluno = window.appState.alunosData.find(a => a.id === alunoId); 
+            if (!aluno) return window.showToast('Aluno não encontrado.', 'error'); 
+            
+            window.appState.currentAlunoIndex = window.appState.filteredAlunos.findIndex(a => a.id === alunoId); 
+            const body = document.getElementById('alunoDetailBody'); if(!body) return; 
+            
+            const { isAdmin, isUser, isProfessor } = window.appState;
+            
+            let av = ''; 
+            const fullWidthPlaceholderStyle = `width: 100%; height: 260px; border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600;`;
+            const fullWidthAvatarStyle = `width: 100%; height: 260px; object-fit: cover; border-radius: var(--avatar-border-radius); margin: 0 auto 15px; display: block; border: 3px solid var(--color-border);`;
+
+            if(aluno.status === 'Transferido' && (isAdmin || isUser)){ 
+                av = `<div class="avatar avatar-placeholder-transferido" style="${fullWidthPlaceholderStyle}">Transferido</div>`;
+            } 
+            else if (aluno.fotoThumb) {
+                av = `<img id="detail-photo-${aluno.id}" src="${aluno.fotoThumb}" style="${fullWidthAvatarStyle}" alt="Foto">`; 
+            }
+            else { 
+                av = `<div class="avatar avatar-placeholder-semfoto" style="${fullWidthPlaceholderStyle}">Sem Foto</div>`; 
+            } 
+            
+            const editButtonHtml = (isAdmin && !window.appState.isReadOnly) ? `<button class="btn btn-primary" onclick="window.closeModal('alunoDetailModal'); window.openEditAlunoModal('${aluno.id}')" style="margin-bottom:10px;">Editar</button>` : '';
+            const msgButtonHtml = (!window.appState.isReadOnly) ? `<button class="btn btn-secondary" onclick="window.openMensagemModal('aluno', '${aluno.id}', '${escapeHTML(aluno.nome)}')" style="margin-bottom:20px; width: 100%;">Enviar Mensagem/Anotação</button>` : '';
+            const navHtml = `<div class="modal-nav"><button class="btn btn-secondary" onclick="window.showPrevAluno()" ${window.appState.currentAlunoIndex <= 0 ? 'disabled' : ''}>← Ant</button><button class="btn btn-secondary" onclick="window.showNextAluno()" ${window.appState.currentAlunoIndex >= window.appState.filteredAlunos.length - 1 ? 'disabled' : ''}>Próx →</button></div>`;
+            
+            let sDados = '', sResp = '', sInfo = '', sMigracao = '', sAtestados = '', sDisciplinar = '';
+            
+            sDados += cDr('Nome',aluno.nome);
+            sDados += cDr('Matrícula',aluno.matricula);
+            sDados += cDr('Turma',aluno.turma);
+            if (isAdmin || isUser) {
+                sDados += cDr('Nº Diário',aluno.diario);
+                sDados += cDr('Status',aluno.status);
+                sDados += cDr('Nasc.',`${formatDate(aluno.nascimento)} ${calculateAge(aluno.nascimento)}`);
+                sDados += cDr('CPF',aluno.cpf);
+                sDados += cDr('Tel Aluno',aluno.telefone);
+            }
+            
+            if (isAdmin || isUser) {
+                sResp += cDr('Resp 1',aluno.responsavel1Nome);
+                sResp += cDr('Par. 1',aluno.responsavel1Tipo);
+                sResp += cDr('Cont. 1',aluno.responsavel1Tel);
+                sResp += cDr('Resp 2',aluno.responsavel2Nome);
+                sResp += cDr('Par. 2',aluno.responsavel2Tipo);
+                sResp += cDr('Cont. 2',aluno.responsavel2Tel);
+            }
+            
+            sInfo += cDr('PCD?',aluno.pcd?'Sim':'Não');
+            if (isAdmin || isUser) {
+                sInfo += cDr('Prova Dif?',aluno.provaDif?'Sim':'Não'); // CORRIGIDO (Bug 1)
+            }
+            sInfo += cDr('Monitorias',aluno.monitorias);
+            sInfo += cDr('Projetos',aluno.projetos);
+            
+            sAtestados = renderHistoricoAtestados(aluno.id);
+            
+            if (isAdmin || isUser) {
+                sDisciplinar = renderHistoricoDisciplinar(aluno.id);
+            }
+            
+            if (isAdmin || isUser) {
+                sMigracao += cDr('Obs 1',aluno.obs1);
+                sMigracao += cDr('Dispensas',aluno.dispensas);
+                sMigracao += cDr('Notificações',aluno.notificacoes);
+                sMigracao += cDr('Advertências',aluno.advertencias);
+                sMigracao += cDr('Suspensões',aluno.suspencoes); // CORRIGIDO (Bug 1)
+                sMigracao += cDr('Obs 2',aluno.obs2);
+            }
+
+            body.innerHTML = `${av}${navHtml}${editButtonHtml}${msgButtonHtml}
+                ${sDados ? `<div class="detail-section"><h3>Dados Pessoais</h3>${sDados}</div>` : ''}
+                ${sResp ? `<div class="detail-section"><h3>Responsáveis</h3>${sResp}</div>` : ''}
+                ${sInfo ? `<div class="detail-section"><h3>Info Adicional</h3>${sInfo}</div>` : ''}
+                ${sAtestados ? `<div class="detail-section"><h3>Histórico de Atestados</h3>${sAtestados}</div>` : ''}
+                ${sDisciplinar ? `<div class="detail-section"><h3>Histórico Disciplinar</h3>${sDisciplinar}</div>` : ''}
+                ${sMigracao ? `<div class="detail-section"><h3>Campos Antigos (Migração)</h3>${sMigracao}</div>` : ''}`; 
+            
+            const mc = document.querySelector('#alunoDetailModal .modal-content'); if(mc) mc.scrollTop = 0; 
+            if (!skipAnimation) window.openModal('alunoDetailModal'); 
+            
+            if (aluno.fotoThumb) {
+                fetchDetailPhoto(aluno.id);
+            }
+        }
+        
+        // =======================================================
+        // --- RENDERIZAÇÃO DE ALUNOS (COM MELHORIA DAS "BOLINHAS") ---
+        // =======================================================
+        
+        window.renderAlunos = () => {
+             console.log("renderAlunos chamado."); 
+             const list = document.getElementById('alunosList'), filters = document.getElementById('turmaFilters'); 
+             if(!list || !filters || !window.appState.isLoggedIn) { return; }
+             
+             // Popula filtros de turma
+             let fHtml = `<div class="chip ${window.appState.currentFilter === 'Todos' ? 'active' : ''}" onclick="window.setFilter('Todos')">Todos</div>`;
+             (window.appState.turmasData || []).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).forEach(t => { fHtml += `<div class="chip ${window.appState.currentFilter === t.nome ? 'active' : ''}" onclick="window.setFilter('${escapeHTML(t.nome)}')">${escapeHTML(t.nome)}</div>`; });
+             filters.innerHTML = fHtml;
+             
+             const q = window.appState.searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+             
+             // Filtra os alunos
+             window.appState.filteredAlunos = (window.appState.alunosData || []).filter(a => { 
+                 const fm = (window.appState.currentFilter === 'Todos' || a.turma === window.appState.currentFilter); 
+                 if (!fm) return false; 
+                 if (q.length === 0) return true; 
+                 
+                 // Lógica de busca
+                 const searchFields = [a.nome, a.matricula];
+                 if(window.appState.isAdmin || window.appState.isUser) {
+                     searchFields.push(a.nascimento, a.cpf, a.responsavel1Nome, a.responsavel2Nome);
+                 }
+                 
+                 const sf = searchFields.map(val => String(val || '').toLowerCase()).join(' ').normalize("NFD").replace(/[\u0300-\u036f]/g,""); 
+                 return sf.includes(q); 
+             });
+             
+             if (window.appState.filteredAlunos.length === 0) { 
+                 list.innerHTML = (window.appState.alunosData.length > 0) ?
+                    `<div class="empty-state"><span class="material-icons-outlined">search_off</span><h3>Nenhum Aluno Encontrado</h3><p>Verifique os filtros ou o termo de busca.</p></div>` :
+                    `<div class="loading">A carregar alunos...</div>`;
+                 return; 
+             }
+             
+             // Renderiza os cards
+             try { 
+                 const { isAdmin, isUser, isReadOnly, isSelectionModeActive, selectedAlunoIds, atestadosData, ocorrenciasData } = window.appState;
+                 
+                 list.innerHTML = window.appState.filteredAlunos.map(a => { 
+                    
+                    let avatar = ''; 
+                    if (a.status === 'Transferido' && (isAdmin || isUser)) {
+                        avatar = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; 
+                    } else if (a.fotoThumb) { 
+                        avatar = `<img src="${a.fotoThumb}" class="avatar" alt="Foto" loading="lazy">`;
+                    } else { 
+                        avatar = `<div class="avatar avatar-placeholder-semfoto">S/ Foto</div>`; 
+                    } 
+                     
+                     const isSel = selectedAlunoIds.includes(a.id); 
+                     const cardCls = `card ${isAdmin && isSelectionModeActive ? 'selectable' : ''} ${isSel ? 'selected' : ''}`; 
+                     const clickH = (isAdmin && isSelectionModeActive && !isReadOnly) ? `window.toggleAlunoSelection('${a.id}')` : `window.showAlunoDetail('${a.id}')`; 
+                     
+                     let actionsHtml = '';
+                     if (!isSelectionModeActive) {
+                         if (isAdmin && !isReadOnly) {
+                             actionsHtml += `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar">
+                                                <span class="material-icons-outlined">edit</span>
+                                             </button>`;
+                         }
+                         if ((isAdmin || isUser) && !isReadOnly) {
+                             actionsHtml += `<button class="card-registro-btn" onclick="event.stopPropagation(); window.openRegistroModal('${a.id}', '${escapeHTML(a.nome)}')" title="Novo Registro">
+                                                <span class="material-icons-outlined">assignment</span>
+                                             </button>`;
+                         }
+                     }
+                     
+                     // ==========================================================
+                     // ===== INÍCIO DA MELHORIA: "BOLINHAS" (INDICADORES) =====
+                     // Adaptado para ler de atestadosData e ocorrenciasData
+                     // ==========================================================
+                     let indicatorsHtml = '';
+                     // CORRIGIDO: Adicionado 'tipo_registro' para atestados
+                     const alunoAtestados = (atestadosData.get(a.id) || []).map(item => ({ ...item, tipo_registro: 'Atestado', data_sort: item.created_at }));
+                     // CORRIGIDO: Usa 'tipo' (legado) ou 'tipo_registro' (novo) para ocorrencias
+                     const alunoOcorrencias = (ocorrenciasData.get(a.id) || []).map(item => ({ ...item, tipo_registro: item.tipo_registro || item.tipo, data_sort: item.created_at }));
+                     
+                     const todosRegistros = [...alunoAtestados, ...alunoOcorrencias];
+
+                     if (todosRegistros.length > 0) {
+                         // 1. Ordena (mais recente primeiro)
+                         const sortedRegistros = todosRegistros.sort((a, b) => new Date(b.data_sort) - new Date(a.data_sort));
+                         // 2. Pega os últimos 4
+                         const ultimosQuatro = sortedRegistros.slice(0, 4);
+                         // 3. Mapeia para HTML
+                         const indicatorsListHtml = ultimosQuatro.map(occ => {
+                             const tipo = occ.tipo_registro;
+                             const dataFormatada = formatDate(occ.data_sort);
+                             switch (tipo) {
+                                 case 'Atestado':
+                                     return `<div class="indicator-dot dot-atestado" title="Atestado (${dataFormatada})">✚</div>`;
+                                 case 'Notificação':
+                                     return `<div class="indicator-dot dot-notificacao" title="Notificação (${dataFormatada})"></div>`;
+                                 case 'Advertência':
+                                     return `<div class="indicator-dot dot-advertencia" title="Advertência (${dataFormatada})"></div>`;
+                                 case 'Suspensão':
+                                     return `<div class="indicator-dot dot-suspensao" title="Suspensão (${dataFormatada})"></div>`;
+                                 case 'Dispensa':
+                                     return `<div class="indicator-dot dot-dispensa" title="Dispensa (${dataFormatada})"></div>`;
+                                 default:
+                                     return ''; // Ignora outros tipos
+                             }
+                         }).join('');
+                         indicatorsHtml = `<div class="aluno-indicators">${indicatorsListHtml}</div>`;
+                     }
+                     // ===========================================
+                     // ===== FIM DA MELHORIA: "BOLINHAS" =====
+                     // ===========================================
+                     
+                     return `<div class="${cardCls}" data-aluno-id="${a.id}" onclick="${clickH}">
+                                ${avatar}
+                                <div class="card-info">
+                                    <div class="card-title">${escapeHTML(a.nome)}</div>
+                                    <div class="card-subtitle">${escapeHTML(a.turma||'S/T')} / Mat: ${escapeHTML(a.matricula || '')}</div>
+                                    ${indicatorsHtml} </div>
+                                <div class="card-actions-wrapper">
+                                    ${actionsHtml}
+                                </div>
+                                <span class="material-icons-outlined card-chevron">chevron_right</span>
+                             </div>`; 
+                 }).join('');
+             } catch (error) { 
+                 console.error("Erro renderAlunos map:", error); 
+                 list.innerHTML = `<div class='empty-state'><h3 style='color:red;'>Erro!</h3><p>Erro ao exibir alunos.</p></div>`; 
+             }
+        }
+
+
+//BLOCO 5 =================
+        // =======================================================
+        // --- CRUD TURMAS (Base: Produção / Melhoria: Botão de Msg) ---
+        // =======================================================
+
+        window.saveTurma = async (e) => { 
+            e.preventDefault(); 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            const form = e.target; if(!form) return; 
+            const tData={nome:form.turmaNome.value.trim(), serie:form.turmaSerie.value.trim() || null, obs:form.turmaObs.value.trim() || null}; 
+            
+            const s=document.getElementById('syncStatus'); if(s)s.classList.add('active'); 
+            try { 
+                const { error } = await db.from('turmas').upsert({ id: window.appState.editingTurmaId || undefined, ...tData });
+                if (error) throw error;
+                
+                window.showToast(window.appState.editingTurmaId ? 'Turma atualizada.' : 'Turma adicionada.', 'success');
+                window.closeModal('turmaModal'); 
+            } catch (err) { 
+                console.error("Erro ao salvar Turma:", err); 
+                window.showToast(`Erro ao salvar turma: ${err.message}`, 'error'); 
+            } 
+            finally { if(s)s.classList.remove('active'); } 
+        }
+        window.openEditTurmaModal = (id) => { 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            const t = window.appState.turmasData.find(x => x.id === id); if (!t) return window.showToast('Turma não encontrada.', 'error'); 
+            window.appState.editingTurmaId = id; 
+            const title=document.getElementById('turmaModalTitle'); if(title) title.textContent = 'Editar Turma'; 
+            const nomeEl = document.getElementById('turmaNome'); if(nomeEl) nomeEl.value = t.nome || '';
+            const serieEl = document.getElementById('turmaSerie'); if(serieEl) serieEl.value = t.serie || '';
+            const obsEl = document.getElementById('turmaObs'); if(obsEl) obsEl.value = t.obs || '';
+            const delBtn = document.getElementById('deleteTurmaBtn'); if(delBtn) delBtn.style.display = 'block'; 
+            window.openModal('turmaModal'); 
+        }
+        window.deleteTurma = async () => { 
+            if (!window.appState.isAdmin || window.appState.isReadOnly) return window.showToast('Sem permissão.', 'error');
+            if (!window.appState.editingTurmaId) return; 
+            if (confirm('Excluir esta turma? (Alunos desta turma NÃO serão excluídos, mas ficarão sem turma).')) { 
+                const s = document.getElementById('syncStatus'); if(s)s.classList.add('active'); 
+                try { 
+                    const { error } = await db.from('turmas').delete().eq('id', window.appState.editingTurmaId);
+                    if (error) throw error;
+                    
+                    window.showToast('Turma excluída.', 'success'); 
+                    window.closeModal('turmaModal'); 
+                } 
+                catch (err) { 
+                    console.error("Erro ao excluir Turma:", err); 
+                    window.showToast(`Erro ao excluir turma: ${err.message}`, 'error'); 
+                } 
+                finally { if(s)s.classList.remove('active'); } 
+            } 
+        }
+        
+        window.showTurmaDetail = (turmaId, skipAnimation = false) => { 
+            const turma = window.appState.turmasData.find(t => t.id === turmaId); if (!turma) return window.showToast('Turma não encontrada.', 'error'); 
+            window.appState.currentTurmaIndex = window.appState.filteredTurmas.findIndex(t => t.id === turmaId); 
+            
+            const alunosDaTurma = window.appState.alunosData.filter(a => a.turma === turma.nome);
+            const aM = alunosDaTurma.filter(a => a.status === 'Matriculado').length; 
+            const aT = alunosDaTurma.filter(a => a.status === 'Transferido').length; 
+            const aPCD = alunosDaTurma.filter(a => a.pcd === true).length;
+            
+            let alunosHTML = `<div class="empty-state" style="padding: 20px 0;"><span class="material-icons-outlined">sentiment_dissatisfied</span><p>Nenhum aluno nesta turma.</p></div>`; 
+            if (alunosDaTurma.length > 0) { 
+                alunosDaTurma.sort((a, b) => (a.nome || '').localeCompare(b.nome || '')); 
+                alunosHTML = alunosDaTurma.map(aluno => { 
+                    let avatarHTML = ''; 
+                    
+                    if (aluno.status === 'Transferido' && (window.appState.isAdmin || window.appState.isUser)) { 
+                        avatarHTML = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; 
+                    } else if (aluno.fotoThumb) { 
+                        avatarHTML = `<img src="${aluno.fotoThumb}" class="avatar" alt="Foto" loading="lazy">`;
+                    } else { 
+                        avatarHTML = `<div class="avatar avatar-placeholder-semfoto" style="font-size: 9px;">S/ Foto</div>`; 
+                    } 
+                    
+                    return `<div class="card" style="margin-bottom: 8px; cursor: pointer;" onclick="window.closeModal('turmaDetailModal'); window.showAlunoDetail('${aluno.id}')">
+                                ${avatarHTML} 
+                                <div class="card-info">
+                                    <div class="card-title" style="font-size: 14px;">${escapeHTML(aluno.nome)}</div>
+                                    <div class="card-subtitle" style="font-size: 11px;">Mat: ${escapeHTML(aluno.matricula||'')}</div>
+                                </div>
+                                <span class="material-icons-outlined card-chevron">chevron_right</span>
+                            </div>`; 
+                }).join(''); 
+            } 
+            const body = document.getElementById('turmaDetailBody'); if(!body) return;
+            
+            const editButtonHtml = (window.appState.isAdmin && !window.appState.isReadOnly) ? `<button class="btn btn-primary" onclick="window.closeModal('turmaDetailModal'); window.openEditTurmaModal('${turma.id}')" style="margin-bottom:10px;">Editar</button>` : '';
+            const msgButtonHtml = (!window.appState.isReadOnly) ? `<button class="btn btn-secondary" onclick="window.openMensagemModal('turma', '${turma.id}', '${escapeHTML(turma.nome)}')" style="margin-bottom:20px; width: 100%;">Enviar Mensagem/Anotação</button>` : '';
+            const navHtml = `<div class="modal-nav"><button class="btn btn-secondary" onclick="window.showPrevTurma()" ${window.appState.currentTurmaIndex <= 0 ? 'disabled' : ''}>← Ant</button><button class="btn btn-secondary" onclick="window.showNextTurma()" ${window.appState.currentTurmaIndex >= window.appState.filteredTurmas.length - 1 ? 'disabled' : ''}>Próx →</button></div>`;
+            
+            let sInfo = cDr('Nome',turma.nome);
+            sInfo += cDr('Série',turma.serie);
+            if (window.appState.isAdmin || window.appState.isUser) {
+                sInfo += cDr('Matriculados', aM);
+                sInfo += cDr('Transferidos', aT);
+            }
+            sInfo += cDr('Alunos PCD', aPCD);
+            sInfo += cDr('Obs',turma.obs);
+                         
+            body.innerHTML = `${navHtml}${editButtonHtml}${msgButtonHtml}
+                ${sInfo ? `<div class="detail-section"><h3>Informações</h3>${sInfo}</div>` : ''}
+                <div class="detail-section turma-aluno-list"><h3>Alunos (${alunosDaTurma.length})</h3>${alunosHTML}</div>`; 
+            const mc = document.querySelector('#turmaDetailModal .modal-content'); if(mc) mc.scrollTop = 0; 
+            if (!skipAnimation) window.openModal('turmaDetailModal'); 
+        }
+
+        // =======================================================
+        // --- FUNÇÕES DE REGISTRO (Corrigidas) ---
+        // =======================================================
+        
+        window.openRegistroModal = (alunoId, alunoNome) => {
+            if (window.appState.isReadOnly) return window.showToast('Registro desabilitado no modo Somente Leitura.', 'error');
+            
+            window.appState.registroAlunoId = alunoId;
+            window.appState.registroAlunoNome = alunoNome;
+            
+            document.getElementById('registroAlunoId').value = alunoId;
+            document.getElementById('registroAlunoNome').textContent = alunoNome;
+            
+            window.openModal('registroSelectModal');
+        }
+        
+        window.openAtestadoForm = () => {
+            window.closeModal('registroSelectModal');
+            const form = document.getElementById('atestadoForm');
+            if (!form) return;
+            form.reset();
+            
+            document.getElementById('atestadoAlunoNome').value = window.appState.registroAlunoNome;
+            document.getElementById('atestadoAssinatura').value = getAssinatura(); 
+            
+            window.openModal('atestadoModal');
+        }
+        
+        window.openOcorrenciaForm = (tipoPrincipal) => {
+            window.closeModal('registroSelectModal');
+            const form = document.getElementById('ocorrenciaForm');
+            if (!form) return;
+            form.reset();
+            
+            document.getElementById('ocorrenciaModalTitle').textContent = `Registrar ${tipoPrincipal}`;
+            document.getElementById('ocorrenciaTipoPrincipal').value = tipoPrincipal;
+            document.getElementById('ocorrenciaAlunoNome').value = window.appState.registroAlunoNome;
+            document.getElementById('ocorrenciaAssinatura').value = getAssinatura(); 
+            
+            const config = OCORRENCIA_TIPOS[tipoPrincipal];
+            if (!config) {
+                console.error("Configuração não encontrada para:", tipoPrincipal);
+                return;
+            }
+            
+            const motivoContainer = document.getElementById('ocorrenciaMotivoContainer');
+            const motivoSelect = document.getElementById('ocorrenciaMotivo');
+            
+            if (config.motivos.length > 0) {
+                motivoSelect.innerHTML = `<option value="">Selecione o Motivo...</option>`;
+                config.motivos.forEach(motivo => {
+                    motivoSelect.innerHTML += `<option value="${escapeHTML(motivo)}">${escapeHTML(motivo)}</option>`;
+                });
+                motivoContainer.style.display = 'block';
+            } else {
+                motivoSelect.innerHTML = '';
+                motivoContainer.style.display = 'none';
+            }
+            
+            document.getElementById('ocorrenciaRefLivroContainer').style.display = config.temLivroOcorrencia ? 'block' : 'none';
+            document.getElementById('registroFisicoContainer').style.display = config.temRegistroFisico ? 'block' : 'none';
+            
+            window.onOcorrenciaMotivoChange(); 
+            window.openModal('ocorrenciaModal');
+        }
+
+        window.onOcorrenciaMotivoChange = () => {
+            const tipoPrincipal = document.getElementById('ocorrenciaTipoPrincipal').value;
+            const motivoSelecionado = document.getElementById('ocorrenciaMotivo').value; 
+            const config = OCORRENCIA_TIPOS[tipoPrincipal];
+            
+            if (!config) return;
+            
+            const comentarioContainer = document.getElementById('ocorrenciaComentarioContainer');
+            const comentarioLabel = document.getElementById('ocorrenciaComentarioLabel');
+            const comentarioInput = document.getElementById('ocorrenciaComentario');
+            
+            comentarioLabel.textContent = config.comentarioLabel;
+            
+            let exigeComentario = config.exigeComentarioObrigatorio; 
+            
+            if (tipoPrincipal === 'Notificação' && motivoSelecionado === 'Outro') exigeComentario = true;
+            if (tipoPrincipal === 'Advertência' && (motivoSelecionado === 'Indisciplina' || motivoSelecionado === 'Outro')) exigeComentario = true;
+            if (tipoPrincipal === 'Dispensa' && motivoSelecionado === 'Outro') exigeComentario = true;
+
+            comentarioInput.required = exigeComentario;
+            comentarioContainer.style.display = 'block';
+        }
+
+        window.saveRegistro = async (event, tipoForm) => {
+            event.preventDefault();
+            if (window.appState.isReadOnly) return window.showToast('Registro desabilitado no modo Somente Leitura.', 'error');
+            
+            const { userRole, registroAlunoId, isReadOnly, userId } = window.appState;
+            const assinatura = getAssinatura();
+            
+            let dataPayload, collectionName, storeName, btn, tipoPrincipal;
+            
+            try {
+                if (tipoForm === 'atestado') {
+                    const form = document.getElementById('atestadoForm');
+                    btn = document.getElementById('saveAtestadoBtn');
+                    if(btn) btn.disabled = true;
+                    
+                    tipoPrincipal = 'Atestado';
+                    dataPayload = {
+                        aluno_id: registroAlunoId,
+                        dataInicio: form.atestadoDataInicio.value, 
+                        dataFim: form.atestadoDataFim.value || null, 
+                        detalhes: form.atestadoDetalhes.value.trim() || null,
+                        registradoPor: assinatura, 
+                        registradoPorRole: userRole,
+                        status: 'ativo'
+                    };
+                    collectionName = 'atestados'; 
+                    storeName = 'atestados_outbox';
+                    
+                } else if (tipoForm === 'ocorrencia') {
+                    const form = document.getElementById('ocorrenciaForm');
+                    btn = document.getElementById('saveOcorrenciaBtn');
+                    if(btn) btn.disabled = true;
+
+                    tipoPrincipal = form.ocorrenciaTipoPrincipal.value;
+                    const levouRegistro = form.ocorrenciaLevouRegistro.checked;
+
+                    dataPayload = {
+                        aluno_id: registroAlunoId,
+                        usuario_id: userId, 
+                        registradoPor: assinatura, 
+                        registradoPorRole: userRole, 
+                        tipo_registro: tipoPrincipal, 
+                        tipo_secundario: form.ocorrenciaMotivo.value,
+                        comentario: form.ocorrenciaComentario.value.trim() || null,
+                        livro_ocorrencia: form.ocorrenciaRefLivro.value.trim() || null,
+                        levou_registro: levouRegistro,
+                        status_devolucao: levouRegistro ? 'Pendente' : 'N/A'
+                    };
+                    collectionName = 'ocorrencias'; 
+                    storeName = 'ocorrencias_outbox';
+                }
+                
+                if (!confirm(`Confirmar registro de ${tipoPrincipal} (${(tipoForm === 'ocorrencia' ? dataPayload.tipo_secundario : dataPayload.dataInicio) || '...'}) para ${window.appState.registroAlunoNome}?`)) {
+                    if(btn) btn.disabled = false;
+                    return;
+                }
+
+                if (!navigator.onLine || isReadOnly) {
+                    const cacheItem = {
+                        requiredRole: userRole,
+                        data: dataPayload
+                    };
+                    await window.dbCacheManager.writeSingleData(storeName, cacheItem);
+                    window.showToast('Registro salvo na fila offline. Será enviado no seu próximo login online.', 'success');
+                } else {
+                    const { error } = await db.from(collectionName).insert(dataPayload);
+                    if (error) throw error;
+                    window.showToast('Registro salvo com sucesso!', 'success');
+                }
+                
+                window.closeModal(`${tipoForm}Modal`);
+
+            } catch (e) {
+                console.error(`Erro ao salvar ${tipoForm}:`, e);
+                window.showToast(`Erro ao salvar registro: ${e.message}`, 'error');
+            } finally {
+                if(btn) btn.disabled = false;
+            }
+        }
 
         // =====================================================================
-        // ===== INÍCIO BLOCO 5: RENDERIZAÇÃO, LISTENERS DE DADOS E NAVEGAÇÃO =====
+        // ===== BLOCO 5: RENDERIZAÇÃO, RELATÓRIOS E LISTENERS =====
         // =====================================================================
 
-        // --- Navegação e Filtro ---
         window.switchTab = (tabName) => {
             if (!window.appState.isLoggedIn) return; 
             if (window.appState.isSelectionModeActive && window.appState.currentTab !== tabName) {
@@ -1782,19 +2846,19 @@ function populateTurmaSelect(elementId, selectedValue) {
             if (isAlunos) {
                 if (headerTitle) headerTitle.textContent = 'Alunos';
                 if (searchBox) searchBox.placeholder = 'Buscar aluno...';
-                window.renderAlunos(); // Renderiza ao trocar
+                window.renderAlunos(); 
             } else if (isTurmas) {
                 if (headerTitle) headerTitle.textContent = 'Turmas';
                 if (searchBox) searchBox.placeholder = 'Buscar turma...';
-                window.renderTurmas(); // Renderiza ao trocar
+                window.renderTurmas(); 
             } else if (isMensagens) {
                 if (headerTitle) headerTitle.textContent = 'Caixa de Entrada';
                 if (searchBox) searchBox.placeholder = 'Buscar mensagem...';
-                window.renderMensagens(); // Renderiza ao trocar
+                window.renderMensagens(); 
             } else if (isRelatorios) {
                 if (headerTitle) headerTitle.textContent = 'Relatórios';
-                if (searchBox) searchBox.style.display = 'none'; // Sem busca em relatórios
-                window.renderRelatorios(); // Renderiza ao trocar
+                if (searchBox) searchBox.style.display = 'none'; 
+                window.renderRelatorios(); 
             }
             
             updateAdminUI();
@@ -1807,133 +2871,8 @@ function populateTurmaSelect(elementId, selectedValue) {
             window.renderAlunos(); 
         }
 
-        // --- Renderização Alunos (Adaptado para nova arquitetura + ITEM 4) ---
-        window.renderAlunos = () => {
-             console.log("renderAlunos chamado."); 
-             const list = document.getElementById('alunosList'), filters = document.getElementById('turmaFilters'); 
-             if(!list || !filters || !window.appState.isLoggedIn) { return; }
-             
-             // Popula filtros de turma
-             let fHtml = `<div class="chip ${window.appState.currentFilter === 'Todos' ? 'active' : ''}" onclick="window.setFilter('Todos')">Todos</div>`;
-             (window.appState.turmasData || []).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).forEach(t => { fHtml += `<div class="chip ${window.appState.currentFilter === t.nome ? 'active' : ''}" onclick="window.setFilter('${escapeHTML(t.nome)}')">${escapeHTML(t.nome)}</div>`; });
-             filters.innerHTML = fHtml;
-             
-             const q = window.appState.searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-             
-             // Filtra os alunos
-             window.appState.filteredAlunos = (window.appState.alunosData || []).filter(a => { 
-                 const fm = (window.appState.currentFilter === 'Todos' || a.turma === window.appState.currentFilter); 
-                 if (!fm) return false; 
-                 if (q.length === 0) return true; 
-                 
-                 // Lógica de busca
-                 const searchFields = [a.nome, a.matricula];
-                 // Admin/User podem buscar por campos privados
-                 if(window.appState.isAdmin || window.appState.isUser) {
-                     searchFields.push(a.nascimento, a.cpf, a.responsavel1Nome, a.responsavel2Nome);
-                 }
-                 
-                 const sf = searchFields.map(val => String(val || '').toLowerCase()).join(' ').normalize("NFD").replace(/[\u0300-\u036f]/g,""); 
-                 return sf.includes(q); 
-             });
-             
-             if (window.appState.filteredAlunos.length === 0) { 
-                 list.innerHTML = (window.appState.alunosData.length > 0) ?
-                    `<div class="empty-state"><span class="material-icons-outlined">search_off</span><h3>Nenhum Aluno Encontrado</h3><p>Verifique os filtros ou o termo de busca.</p></div>` :
-                    `<div class="loading">A carregar alunos...</div>`;
-                 return; 
-             }
-             
-             // Renderiza os cards
-             try { 
-                 const { isAdmin, isUser, isReadOnly, isSelectionModeActive, selectedAlunoIds, ocorrenciasData } = window.appState;
-                 
-                 list.innerHTML = window.appState.filteredAlunos.map(a => { 
-                    
-                    let avatar = ''; 
-                    if (a.status === 'Transferido' && (isAdmin || isUser)) { // Status só visível para Admin/User
-                        avatar = `<div class="avatar avatar-placeholder-transferido">Transf.</div>`; 
-                    } else if (a.fotoThumb) { 
-                        avatar = `<img src="${a.fotoThumb}" class="avatar" alt="Foto" loading="lazy">`;
-                    } else { 
-                        avatar = `<div class="avatar avatar-placeholder-semfoto">S/ Foto</div>`; 
-                    } 
-                     
-                     const isSel = selectedAlunoIds.includes(a.id); 
-                     const cardCls = `card ${isAdmin && isSelectionModeActive ? 'selectable' : ''} ${isSel ? 'selected' : ''}`; 
-                     const clickH = (isAdmin && isSelectionModeActive && !isReadOnly) ? `window.toggleAlunoSelection('${a.id}')` : `window.showAlunoDetail('${a.id}')`; 
-                     
-                     let actionsHtml = '';
-                     if (!isSelectionModeActive) {
-                         // Botão de Editar (Admin)
-                         if (isAdmin && !isReadOnly) {
-                             actionsHtml += `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditAlunoModal('${a.id}')" title="Editar">
-                                                <span class="material-icons-outlined">edit</span>
-                                             </button>`;
-                         }
-                         
-                         // Botão de Registro (Admin/User)
-                         if ((isAdmin || isUser) && !isReadOnly) {
-                             actionsHtml += `<button class="card-registro-btn" onclick="event.stopPropagation(); window.openRegistroModal('${a.id}', '${escapeHTML(a.nome)}')" title="Novo Registro">
-                                                <span class="material-icons-outlined">assignment</span>
-                                             </button>`;
-                         }
-                     }
-                     
-                     // ===========================================
-                     // ===== INÍCIO DA LÓGICA DO ITEM 4 (Bolinhas) =====
-                     // ===========================================
-                     let indicatorsHtml = '';
-                     const alunoOcorrencias = ocorrenciasData.get(a.id) || [];
-                     
-                     if (alunoOcorrencias.length > 0) {
-                         // 1. Ordena (mais recente primeiro)
-                         const sortedOcorrencias = [...alunoOcorrencias].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                         // 2. Pega os últimos 4
-                         const ultimasQuatro = sortedOcorrencias.slice(0, 4);
-                         // 3. Mapeia para HTML
-                         const indicatorsListHtml = ultimasQuatro.map(occ => {
-                             const tipo = occ.tipo_registro;
-                             switch (tipo) {
-                                 case 'Atestado':
-                                     return `<div class="indicator-dot dot-atestado" title="Atestado (${formatDate(occ.created_at)})">✚</div>`;
-                                 case 'Notificação':
-                                     return `<div class="indicator-dot dot-notificacao" title="Notificação (${formatDate(occ.created_at)})"></div>`;
-                                 case 'Advertência':
-                                     return `<div class="indicator-dot dot-advertencia" title="Advertência (${formatDate(occ.created_at)})"></div>`;
-                                 case 'Suspensão':
-                                     return `<div class="indicator-dot dot-suspensao" title="Suspensão (${formatDate(occ.created_at)})"></div>`;
-                                 case 'Dispensa':
-                                     return `<div class="indicator-dot dot-dispensa" title="Dispensa (${formatDate(occ.created_at)})"></div>`;
-                                 default:
-                                     return '';
-                             }
-                         }).join('');
-                         indicatorsHtml = `<div class="aluno-indicators">${indicatorsListHtml}</div>`;
-                     }
-                     // ===========================================
-                     // ===== FIM DA LÓGICA DO ITEM 4 =====
-                     // ===========================================
-                     
-                     return `<div class="${cardCls}" data-aluno-id="${a.id}" onclick="${clickH}">
-                                ${avatar}
-                                <div class="card-info">
-                                    <div class="card-title">${escapeHTML(a.nome)}</div>
-                                    <div class="card-subtitle">${escapeHTML(a.turma||'S/T')} / Mat: ${escapeHTML(a.matricula || '')}</div>
-                                    ${indicatorsHtml} </div>
-                                <div class="card-actions-wrapper">
-                                    ${actionsHtml}
-                                </div>
-                                <span class="material-icons-outlined card-chevron">chevron_right</span>
-                             </div>`; 
-                 }).join('');
-             } catch (error) { 
-                 console.error("Erro renderAlunos map:", error); 
-                 list.innerHTML = `<div class='empty-state'><h3 style='color:red;'>Erro!</h3><p>Erro ao exibir alunos.</p></div>`; 
-             }
-        }
+        // renderAlunos() já foi fornecido no Bloco 4
 
-        // --- Renderização Turmas ---
         window.renderTurmas = () => { 
             console.log("renderTurmas chamado.");
             const list = document.getElementById('turmasList'); 
@@ -1959,13 +2898,11 @@ function populateTurmaSelect(elementId, selectedValue) {
                 const alunosNaTurma = alunosData.filter(a => a.turma === t.nome); 
                 let contagemAlunos = alunosNaTurma.length;
                 
-                // Admin/User veem contagem de matriculados (excluindo transferidos)
                 if(isAdmin || isUser) {
                     contagemAlunos = alunosNaTurma.filter(a => a.status === 'Matriculado').length;
                 }
                 
                 let actionsHtml = '';
-                // Botão de Editar (Admin)
                 if (isAdmin && !isReadOnly) {
                     actionsHtml += `<button class="card-edit-btn" onclick="event.stopPropagation(); window.openEditTurmaModal('${t.id}')" title="Editar">
                                        <span class="material-icons-outlined">edit</span>
@@ -1988,7 +2925,6 @@ function populateTurmaSelect(elementId, selectedValue) {
              }).join(''); 
         }
 
-        // --- Renderização Mensagens (Admin) ---
         window.renderMensagens = () => {
             if (!window.appState.isAdmin || window.appState.isReadOnly) return;
             
@@ -1999,7 +2935,7 @@ function populateTurmaSelect(elementId, selectedValue) {
             
             const mensagens = (window.appState.mensagensData || []).filter(msg => {
                 if (q.length === 0) return true;
-                const sf = [msg.texto, msg.remetenteEmail, msg.remetenteAssinatura, msg.assuntoNome].filter(Boolean).join(' ').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+                const sf = [msg.texto, msg.remetente_email, msg.remetente_ass, msg.assunto_nome].filter(Boolean).join(' ').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
                 return sf.includes(q);
             });
             
@@ -2009,19 +2945,19 @@ function populateTurmaSelect(elementId, selectedValue) {
             }
             
             list.innerHTML = mensagens.map(msg => {
-                const remetente = msg.remetenteAssinatura || msg.remetenteEmail || 'Desconhecido';
+                const remetente = msg.remetente_ass || msg.remetente_email || 'Desconhecido';
                 return `<div class="mensagem-card">
                             <div class="mensagem-header">
                                 <div>
-                                    <div class="mensagem-meta">De: ${escapeHTML(remetente)} (${escapeHTML(msg.remetenteRole)})</div>
+                                    <div class="mensagem-meta">De: ${escapeHTML(remetente)} (${escapeHTML(msg.remetente_role)})</div>
                                     <div class="mensagem-meta">${formatarDataHora(msg.created_at)}</div>
                                 </div>
                                 <button class="mensagem-delete-btn" title="Excluir" onclick="window.deleteMensagem('${msg.id}')">
                                     <span class="material-icons-outlined">delete_outline</span>
                                 </button>
                             </div>
-                            <a class="mensagem-assunto" href="#" onclick="event.preventDefault(); window.goToMensagemAssunto('${escapeHTML(msg.tipo)}', '${escapeHTML(msg.assuntoId)}')">
-                                ${escapeHTML(msg.assuntoNome)}
+                            <a class="mensagem-assunto" href="#" onclick="event.preventDefault(); window.goToMensagemAssunto('${escapeHTML(msg.tipo)}', '${escapeHTML(msg.assunto_id)}')">
+                                ${escapeHTML(msg.assunto_nome)}
                             </a>
                             <div class="mensagem-body">${escapeHTML(msg.texto)}</div>
                         </div>`;
@@ -2029,33 +2965,32 @@ function populateTurmaSelect(elementId, selectedValue) {
         }
         
         // =======================================================
-        // --- INÍCIO DA CORREÇÃO: RELATÓRIOS (IMPLEMENTAÇÃO) ---
+        // --- SEÇÃO DE RELATÓRIOS (Corrigida) ---
         // =======================================================
-        
-        /**
-         * Helper para formatar um item de feed (Atestado ou Ocorrência) (ITEM 1/3)
-         */
+
         function formatarFeedItem(item) {
-            const { isAdmin } = window.appState;
+            const { isAdmin, isReadOnly } = window.appState;
             const aluno = window.appState.alunosData.find(a => a.id === item.aluno_id);
             const alunoNome = aluno ? aluno.nome : 'Aluno não encontrado';
             
-            const desativarBtn = (isAdmin && item.status !== 'desativada' && !window.appState.isReadOnly) ? 
-                `<button class="btn btn-danger" style="padding: 2px 6px; font-size: 10px; margin-left: auto;" onclick="window.desativarRegistro('${item.id}', 'ocorrencias')">Desativar</button>` : ''; // Tipo é sempre 'ocorrencias'
+            const isAtestado = item.hasOwnProperty('dataInicio');
+            const collectionName = isAtestado ? 'atestados' : 'ocorrencias';
+            const tipoRegistro = isAtestado ? 'Atestado' : (item.tipo_registro || item.tipo); 
 
-            const tipoRegistro = item.tipo_registro; // 'Atestado', 'Dispensa', 'Notificação', etc.
+            const desativarBtn = (isAdmin && item.status !== 'desativada' && !isReadOnly) ? 
+                `<button class="btn btn-danger" style="padding: 2px 6px; font-size: 10px; margin-left: auto;" onclick="window.desativarRegistro('${item.id}', '${collectionName}')">Desativar</button>` : '';
 
-            // Define o estilo da borda
-            let tipoClasse = 'tipo-ocorrencia'; // Vermelho Padrão
+            let tipoClasse = 'tipo-ocorrencia'; 
             if (tipoRegistro === 'Atestado') tipoClasse = 'tipo-atestado';
             if (tipoRegistro === 'Dispensa') tipoClasse = 'tipo-dispensa';
             
-            // Define o conteúdo do body
             let bodyHtml = '';
-            if (tipoRegistro === 'Atestado') {
-                bodyHtml = `De ${formatDate(item.data_inicio)} até ${formatDate(item.data_fim)}`;
+            if (isAtestado) {
+                bodyHtml = `De ${formatDate(item.dataInicio)} até ${formatDate(item.dataFim)}`;
             } else {
-                bodyHtml = `${escapeHTML(item.tipo_secundario || 'N/D')} ${item.comentario ? `(${escapeHTML(item.comentario)})` : ''}`;
+                const motivo = item.tipo_secundario || item.motivo;
+                const comentario = item.comentario || item.detalhes;
+                bodyHtml = `${escapeHTML(motivo || 'N/D')} ${comentario ? `(${escapeHTML(comentario)})` : ''}`;
             }
 
             return `
@@ -2067,13 +3002,12 @@ function populateTurmaSelect(elementId, selectedValue) {
                     <div class="report-item-body">${bodyHtml}</div>
                     <div class="report-item-footer">
                         <span>Reg. por: ${escapeHTML(item.registradoPor)}</span>
-                        ${item.livro_ocorrencia ? `<span>Livro: ${escapeHTML(item.livro_ocorrencia)}</span>` : ''}
+                        ${!isAtestado ? `<span>Livro: ${escapeHTML(item.livro_ocorrencia || item.refLivro || '')}</span>` : ''}
                         ${desativarBtn}
                     </div>
                 </div>`;
         }
 
-        // --- Renderização Relatórios (MODIFICADO) (ITEM 1) ---
         window.renderRelatorios = () => {
             console.log("renderRelatorios chamado.");
             const container = document.getElementById('relatoriosContainer');
@@ -2083,15 +3017,16 @@ function populateTurmaSelect(elementId, selectedValue) {
                  return;
             }
             
-            // 1. Achatamento de dados (Flat data) - AGORA VEM DE UM SÓ LUGAR
+            const todosAtestados = [...window.appState.atestadosData.values()].flat();
             const todasOcorrencias = [...window.appState.ocorrenciasData.values()].flat();
             
-            // 2. Ordenar
-            const feedCombinado = todasOcorrencias
-                .map(item => ({ ...item, feedDate: new Date(item.created_at) }))
-                .sort((a, b) => b.feedDate - a.feedDate); // Mais recentes primeiro
+            const feedCombinado = [
+                ...todosAtestados,
+                ...todasOcorrencias
+            ]
+            .map(item => ({ ...item, feedDate: new Date(item.created_at) }))
+            .sort((a, b) => b.feedDate - a.feedDate); 
             
-            // 3. Pega os últimos 40 para o feed inicial
             const ultimosRegistros = feedCombinado.slice(0, 40); 
             
             let feedHtml = `<div class="empty-state"><p>Nenhum registro encontrado.</p></div>`;
@@ -2099,7 +3034,6 @@ function populateTurmaSelect(elementId, selectedValue) {
                 feedHtml = ultimosRegistros.map(formatarFeedItem).join('');
             }
             
-            // Monta a UI completa da aba (COM NOVOS FILTROS - ITEM 1)
             container.innerHTML = `
                 <div class="report-filters" style="flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 120px;">
@@ -2134,7 +3068,7 @@ function populateTurmaSelect(elementId, selectedValue) {
                         <span class="material-icons-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">filter_alt</span>
                         Filtrar
                     </button>
-                    <button class="btn btn-primary" onclick="window.exportRelatorioCSV()" style="flex: 1;">
+                    <button class="btn btn-primary" onclick="window.exportRelatorioXLSX()" style="flex: 1;">
                         <span class="material-icons-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">download</span>
                         Exportar (.xlsx)
                     </button>
@@ -2151,10 +3085,7 @@ function populateTurmaSelect(elementId, selectedValue) {
             `;
         }
 
-        /**
-         * (NOVA FUNÇÃO) Aplica o filtro de data buscando no Supabase (ITEM 1)
-         */
-        window.aplicarFiltroRelatorio = async () => {
+        window.aplicarFiltroRelatorio = async (paraExportar = false) => {
             console.log("Aplicando filtro de relatório...");
             if (!window.appState.isAdmin && !window.appState.isUser) return window.showToast('Sem permissão.', 'error');
             
@@ -2162,48 +3093,86 @@ function populateTurmaSelect(elementId, selectedValue) {
             const dataFim = document.getElementById('reportDataFim').value;
             
             if (!dataInicio || !dataFim) {
-                return window.showToast('Por favor, selecione data de início e fim para filtrar.', 'error');
+                window.showToast('Por favor, selecione data de início e fim para filtrar.', 'error');
+                return null;
             }
             const dataFimAjustada = `${dataFim}T23:59:59`;
             
-            // LER OS CHECKBOXES (ITEM 1)
-            const tiposFiltro = [];
-            if (document.getElementById('chkRelAtestados').checked) tiposFiltro.push('Atestado');
-            if (document.getElementById('chkRelDispensas').checked) tiposFiltro.push('Dispensa');
-            if (document.getElementById('chkRelNotificacoes').checked) tiposFiltro.push('Notificação');
-            if (document.getElementById('chkRelAdvertencias').checked) tiposFiltro.push('Advertência');
-            if (document.getElementById('chkRelSuspensoes').checked) tiposFiltro.push('Suspensão');
+            const chkAtestados = document.getElementById('chkRelAtestados').checked;
+            const chkDispensas = document.getElementById('chkRelDispensas').checked;
+            const chkNotificacoes = document.getElementById('chkRelNotificacoes').checked;
+            const chkAdvertencias = document.getElementById('chkRelAdvertencias').checked;
+            const chkSuspensoes = document.getElementById('chkRelSuspensoes').checked;
 
-            if (tiposFiltro.length === 0) {
-                return window.showToast('Selecione pelo menos um tipo de registro para filtrar.', 'error');
+            const tiposOcorrenciaFiltro = [];
+            if (chkDispensas) tiposOcorrenciaFiltro.push('Dispensa');
+            if (chkNotificacoes) tiposOcorrenciaFiltro.push('Notificação');
+            if (chkAdvertencias) tiposOcorrenciaFiltro.push('Advertência');
+            if (chkSuspensoes) tiposOcorrenciaFiltro.push('Suspensão');
+            
+            if (!chkAtestados && tiposOcorrenciaFiltro.length === 0) {
+                window.showToast('Selecione pelo menos um tipo de registro para filtrar.', 'error');
+                return null;
             }
             
             const feedBody = document.getElementById('reportFeedBody');
             const feedTitle = document.getElementById('reportFeedTitle');
             const sync = document.getElementById('syncStatus');
             
-            if(feedBody) feedBody.innerHTML = '<div class="loading">A filtrar dados no servidor...</div>';
-            if(feedTitle) feedTitle.textContent = 'Resultados Filtrados';
-            if(sync) sync.classList.add('active');
+            if(!paraExportar) {
+                if(feedBody) feedBody.innerHTML = '<div class="loading">A filtrar dados no servidor...</div>';
+                if(feedTitle) feedTitle.textContent = 'Resultados Filtrados';
+                if(sync) sync.classList.add('active');
+            } else {
+                window.showToast('A buscar dados no servidor para exportar...', 'success');
+            }
             
             try {
-                // Query ÚNICA
-                const { data: ocorrencias, error } = await db
-                    .from('ocorrencias')
-                    .select('*')
-                    .gte('created_at', dataInicio) // Filtra pela data de criação/registro
-                    .lte('created_at', dataFimAjustada)
-                    .in('tipo_registro', tiposFiltro) // FILTRA PELOS TIPOS (ITEM 1)
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
+                let promises = [];
                 
-                if (ocorrencias.length === 0) {
+                if (chkAtestados) {
+                    promises.push(
+                        db.from('atestados')
+                          .select('*')
+                          .gte('created_at', dataInicio)
+                          .lte('created_at', dataFimAjustada)
+                    );
+                } else {
+                    promises.push(Promise.resolve({ data: [], error: null })); 
+                }
+                
+                if (tiposOcorrenciaFiltro.length > 0) {
+                    promises.push(
+                        db.from('ocorrencias')
+                          .select('*')
+                          .gte('created_at', dataInicio)
+                          .lte('created_at', dataFimAjustada)
+                          .in('tipo_registro', tiposOcorrenciaFiltro) 
+                    );
+                } else {
+                    promises.push(Promise.resolve({ data: [], error: null })); 
+                }
+
+                const [atestadosResult, ocorrenciasResult] = await Promise.all(promises);
+
+                if (atestadosResult.error) throw atestadosResult.error;
+                if (ocorrenciasResult.error) throw ocorrenciasResult.error;
+                
+                const dadosCombinados = [
+                    ...(atestadosResult.data || []),
+                    ...(ocorrenciasResult.data || [])
+                ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                
+                if (paraExportar) {
+                    return dadosCombinados; 
+                }
+
+                if (dadosCombinados.length === 0) {
                     feedBody.innerHTML = '<div class="empty-state"><p>Nenhum registro encontrado para este período e filtros.</p></div>';
                 } else {
-                    feedBody.innerHTML = ocorrencias.map(formatarFeedItem).join('');
+                    feedBody.innerHTML = dadosCombinados.map(formatarFeedItem).join('');
                 }
-                window.showToast(`Filtro aplicado. ${ocorrencias.length} registros encontrados.`, 'success');
+                window.showToast(`Filtro aplicado. ${dadosCombinados.length} registros encontrados.`, 'success');
                 
             } catch (e) {
                 console.error("Erro ao filtrar relatórios:", e);
@@ -2212,103 +3181,51 @@ function populateTurmaSelect(elementId, selectedValue) {
             } finally {
                 if(sync) sync.classList.remove('active');
             }
+            return null;
         }
         
-        // --- FUNÇÃO DE RELATÓRIO (MODIFICADA) (ITEM 1 e 5) ---
-        window.exportRelatorioCSV = async () => {
-            console.log("Iniciando exportação de relatório...");
+        window.exportRelatorioXLSX = async () => {
             if (!window.appState.isAdmin && !window.appState.isUser) return window.showToast('Sem permissão.', 'error');
             
-            const dataInicioInput = document.getElementById('reportDataInicio');
-            const dataFimInput = document.getElementById('reportDataFim');
-
-            if (!dataInicioInput.value || !dataFimInput.value) {
-                return window.showToast('Por favor, selecione data de início e fim para exportar.', 'error');
+            const dataInicio = document.getElementById('reportDataInicio').value;
+            const dataFim = document.getElementById('reportDataFim').value;
+            if (!dataInicio || !dataFim) return window.showToast('Por favor, selecione data de início e fim para exportar.', 'error');
+            
+            const dadosFiltrados = await window.aplicarFiltroRelatorio(true); 
+            
+            if (dadosFiltrados === null) return; 
+            
+            if (dadosFiltrados.length === 0) {
+                return window.showToast('Nenhum registro encontrado para as datas e filtros selecionados.', 'error');
             }
             
-            const dataInicio = dataInicioInput.value;
-            const dataFimAjustada = `${dataFimInput.value}T23:59:59`;
+            const alunosMap = new Map(window.appState.alunosData.map(a => [a.id, a.nome]));
             
-            // LER OS CHECKBOXES (ITEM 1)
-            const tiposFiltro = [];
-            if (document.getElementById('chkRelAtestados').checked) tiposFiltro.push('Atestado');
-            if (document.getElementById('chkRelDispensas').checked) tiposFiltro.push('Dispensa');
-            if (document.getElementById('chkRelNotificacoes').checked) tiposFiltro.push('Notificação');
-            if (document.getElementById('chkRelAdvertencias').checked) tiposFiltro.push('Advertência');
-            if (document.getElementById('chkRelSuspensoes').checked) tiposFiltro.push('Suspensão');
-
-            if (tiposFiltro.length === 0) {
-                return window.showToast('Selecione pelo menos um tipo de registro para exportar.', 'error');
-            }
-            
-            const sync = document.getElementById('syncStatus');
-            if(sync) sync.classList.add('active');
-            window.showToast('A buscar dados no servidor para exportar...', 'success');
-
-            try {
-                // Mapeia os alunos (id -> nome) para facilitar
-                const alunosMap = new Map(window.appState.alunosData.map(a => [a.id, a.nome]));
-                
-                // Query ÚNICA
-                const { data: ocorrenciasFiltradas, error } = await db
-                    .from('ocorrencias')
-                    .select('*')
-                    .gte('created_at', dataInicio)
-                    .lte('created_at', dataFimAjustada)
-                    .in('tipo_registro', tiposFiltro) // FILTRA PELOS TIPOS (ITEM 1)
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                
-                if (ocorrenciasFiltradas.length === 0) {
-                    return window.showToast('Nenhum registro encontrado para as datas e filtros selecionados.', 'error');
-                }
-
-                // ==============================================
-                // ===== INÍCIO DA MUDANÇA (ITEM 5) =====
-                // ==============================================
-
-                // 3. Mapeia para JSON
-                const dadosParaExportar = ocorrenciasFiltradas.map(item => ({
-                    // Define a ordem das colunas aqui
+            const dadosParaExportar = dadosFiltrados.map(item => {
+                const isAtestado = item.hasOwnProperty('dataInicio');
+                return {
                     "Data Registro": formatarDataHora(item.created_at),
                     "Aluno": alunosMap.get(item.aluno_id) || 'Aluno Excluído',
-                    "Tipo": item.tipo_registro,
-                    "Subtipo/Motivo": item.tipo_registro === 'Atestado' ? '' : (item.tipo_secundario || ''),
-                    "Data Início Atestado": item.tipo_registro === 'Atestado' ? formatDate(item.data_inicio) : '',
-                    "Data Fim Atestado": item.tipo_registro === 'Atestado' ? formatDate(item.data_fim) : '',
-                    "Comentário": item.comentario || '',
+                    "Tipo": isAtestado ? 'Atestado' : (item.tipo_registro || item.tipo),
+                    "Subtipo/Motivo": isAtestado ? '' : (item.tipo_secundario || item.motivo || ''),
+                    "Data Início Atestado": isAtestado ? formatDate(item.dataInicio) : '',
+                    "Data Fim Atestado": isAtestado ? formatDate(item.dataFim) : '',
+                    "Comentário/Detalhes": item.comentario || item.detalhes || '',
                     "Registrado Por": item.registradoPor,
-                    "Ref. Livro": item.livro_ocorrencia || '',
-                    "Levou Registro": item.levou_registro_fisico ? 'Sim' : 'Não',
-                    "Status Devolução": item.status_devolucao
-                }));
-                
-                // 4. Gera o XLSX
-                const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Relatório");
-                
-                // 5. Baixa o XLSX
-                XLSX.writeFile(wb, `relatorio_filtrado_${dataInicio}_a_${dataFimInput.value}.xlsx`);
-                window.showToast('Relatório exportado com sucesso!', 'success');
+                    "Ref. Livro": !isAtestado ? (item.livro_ocorrencia || item.refLivro || '') : '',
+                    "Levou Registro": !isAtestado ? ((item.levou_registro || item.levou_registro_fisico) ? 'Sim' : 'Não') : '',
+                    "Status Devolução": !isAtestado ? (item.status_devolucao || '') : '',
+                    "Status": item.status || 'ativo'
+                };
+            });
             
-                // ==============================================
-                // ===== FIM DA MUDANÇA (ITEM 5) =====
-                // ==============================================
-                
-            } catch (e) {
-                console.error("Erro ao exportar XLSX:", e);
-                window.showToast(`Erro ao exportar: ${e.message}`, 'error');
-            } finally {
-                if(sync) sync.classList.remove('active');
-            }
+            const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+            
+            XLSX.writeFile(wb, `relatorio_filtrado_${dataInicio}_a_${dataFim}.xlsx`);
+            window.showToast('Relatório exportado com sucesso!', 'success');
         }
-        
-        // =======================================================
-        // --- FIM DA CORREÇÃO: RELATÓRIOS ---
-        // =======================================================
-
 
         // --- Funções Auxiliares de UI ---
         window.updateMensagensBadge = () => {
@@ -2359,12 +3276,10 @@ function populateTurmaSelect(elementId, selectedValue) {
             }
         }
         
-        // --- Funções de Relatório (Helpers) ---
         window.desativarRegistro = async (id, tipo) => {
             if (!window.appState.isAdmin || window.appState.isReadOnly) return;
             
-            // O 'tipo' (collectionName) agora é sempre 'ocorrencias'
-            const collectionName = 'ocorrencias';
+            const collectionName = tipo; // 'atestados' ou 'ocorrencias'
             if (confirm(`Desativar este registro? Ele ficará oculto mas não será excluído.`)) {
                 try {
                     const { error } = await db.from(collectionName).update({ status: 'desativada' }).eq('id', id);
@@ -2378,22 +3293,34 @@ function populateTurmaSelect(elementId, selectedValue) {
         }
 
         // =======================================================
-        // --- MOTOR PRINCIPAL: LISTENERS DE DADOS (SUPABASE) ---
+        // --- MOTOR PRINCIPAL: LISTENERS (CORREÇÃO: CARGA INICIAL) ---
         // =======================================================
 
-        /**
-         * Mescla os dados públicos e privados (para Admin/User)
-         * ou apenas prepara os dados públicos (para Professor)
-         */
         function mergeAndRenderAlunos() {
-            // Esta função foi MOVIDA para dentro do listener de 'alunos'
-            // para evitar race conditions, mas a lógica é a mesma.
+            const { isProfessor, publicAlunosData, privateAlunosData } = window.appState;
+            
+            let mergedAlunosData = [];
+            
+            if (isProfessor) {
+                mergedAlunosData = Array.from(publicAlunosData.values());
+            } else {
+                console.log(`Mesclando ${publicAlunosData.size} públicos com ${privateAlunosData.size} privados.`);
+                publicAlunosData.forEach((publicDoc, id) => {
+                    const privateData = privateAlunosData.get(id) || {};
+                    mergedAlunosData.push({ ...privateData, ...publicDoc, id: id });
+                });
+            }
+
+            window.appState.alunosData = mergedAlunosData;
+            
+            window.dbCacheManager.writeData('alunos', mergedAlunosData)
+                .then(() => console.log(`Cache 'alunos' (${isProfessor ? 'público' : 'completo'}) ATUALIZADO com ${mergedAlunosData.length} registros.`))
+                .catch(err => console.error("Erro ao salvar alunos no cache manual:", err));
+
+            if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
+            if (window.appState.currentTab === 'turmas') window.renderTurmas();
         }
 
-        /**
-         * Inicia todos os listeners de tempo real do Supabase
-         * baseado no Role do usuário.
-         */
         function iniciarListenersSupabase() {
             if (window.appState.isReadOnly || !navigator.onLine) {
                 console.log("Modo ReadOnly ou Offline. Listeners do Supabase não serão ligados.");
@@ -2402,12 +3329,11 @@ function populateTurmaSelect(elementId, selectedValue) {
             
             console.log(`Iniciando listeners do Supabase para role: ${window.appState.userRole}`);
             
-            const { isAdmin, isUser, isProfessor } = window.appState;
+            const { isAdmin, isUser } = window.appState;
             
             // --- TABELA: turmas (Visível para TODOS) ---
             const turmasChannel = supabase.channel('turmas_channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'turmas' }, () => {
-                    // Recarrega todos os dados para simplicidade
                     db.from('turmas').select('*').order('nome').then(({ data }) => {
                         if (data) {
                             window.appState.turmasData = data;
@@ -2429,37 +3355,28 @@ function populateTurmaSelect(elementId, selectedValue) {
                     window.renderAlunos();
                 }
             });
-            
-            // --- TABELA: alunos (Visível para TODOS, mas filtrada por RLS) ---
-            const alunosChannel = supabase.channel('alunos_channel')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'alunos' }, (payload) => {
-                    // Simplesmente recarrega tudo por segurança
-                    db.from('alunos').select('*').order('nome').then(({ data }) => {
-                        if (data) {
-                            window.appState.alunosData = data;
-                            window.dbCacheManager.writeData('alunos', data);
-                            if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
-                            if (window.appState.currentTab === 'turmas') window.renderTurmas();
-                        }
-                    });
+
+            // --- TABELA: fotos_alunos (Visível para TODOS) ---
+            const fotosChannel = supabase.channel('fotos_alunos_channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'fotos_alunos' }, (payload) => {
+                    const item = payload.new || payload.old;
+                    if (!item) return;
+                    
+                    if (payload.eventType === 'DELETE') {
+                        window.appState.fotosData.delete(item.aluno_id);
+                        window.dbCacheManager.deleteSingleData('fotos_detalhe', item.aluno_id);
+                    } else {
+                        window.appState.fotosData.set(item.aluno_id, item.fotoBase64); 
+                        window.dbCacheManager.writeSingleData('fotos_detalhe', { id: item.aluno_id, fotoBase64: item.fotoBase64 }); 
+                    }
                 })
                 .subscribe();
-            subscriptions.push(alunosChannel);
-            // Carga inicial
-            db.from('alunos').select('*').order('nome').then(({ data }) => {
-                if(data) {
-                    console.log(`Carga inicial: ${data.length} alunos carregados (baseado no RLS).`);
-                    window.appState.alunosData = data;
-                    window.dbCacheManager.writeData('alunos', data);
-                    window.renderAlunos();
-                }
-            });
-
-            // --- TABELA: ocorrencias (Visível para TODOS, mas filtrada por RLS) ---
-            const ocorrenciasChannel = supabase.channel('ocorrencias_channel')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'ocorrencias' }, () => {
-                     // Recarrega todos
-                    db.from('ocorrencias').select('*').then(({ data }) => {
+            subscriptions.push(fotosChannel);
+            
+            // --- TABELA: atestados (Visível para TODOS) ---
+            const atestadosChannel = supabase.channel('atestados_channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'atestados' }, () => {
+                    db.from('atestados').select('*').then(({ data }) => {
                         if (data) {
                             const map = new Map();
                             data.forEach(item => {
@@ -2467,39 +3384,118 @@ function populateTurmaSelect(elementId, selectedValue) {
                                 list.push(item);
                                 map.set(item.aluno_id, list);
                             });
-                            window.appState.ocorrenciasData = map;
-                            window.dbCacheManager.writeData('ocorrencias', data);
+                            window.appState.atestadosData = map;
+                            window.dbCacheManager.writeData('atestados', data);
                             if (window.appState.currentTab === 'relatorios') window.renderRelatorios();
-                            if (window.appState.currentTab === 'alunos') window.renderAlunos(); // Para atualizar as bolinhas
+                            if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
                         }
                     });
                 })
                 .subscribe();
-            subscriptions.push(ocorrenciasChannel);
+            subscriptions.push(atestadosChannel);
             
-            // Carga inicial (CORREÇÃO 2)
-            db.from('ocorrencias').select('*').then(({ data }) => {
+            // **** CORREÇÃO: CARGA INICIAL DE ATESTADOS ****
+            db.from('atestados').select('*').then(({ data }) => {
                 if (data) {
+                    console.log(`Carga inicial: ${data.length} atestados carregados.`);
                     const map = new Map();
                     data.forEach(item => {
                         const list = map.get(item.aluno_id) || [];
                         list.push(item);
                         map.set(item.aluno_id, list);
                     });
-                    window.appState.ocorrenciasData = map;
-                    window.dbCacheManager.writeData('ocorrencias', data);
-                    console.log(`Carga inicial: ${data.length} ocorrências carregadas.`);
+                    window.appState.atestadosData = map;
+                    window.dbCacheManager.writeData('atestados', data);
                     if (window.appState.currentTab === 'relatorios') window.renderRelatorios();
-                    if (window.appState.currentTab === 'alunos') window.renderAlunos(); // Para as bolinhas
+                    if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
                 }
             });
+
+            // --- TABELA: alunos_publico (Visível para TODOS) ---
+            const publicAlunosChannel = supabase.channel('alunos_publico_channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'alunos_publico' }, (payload) => {
+                    if (payload.eventType === 'DELETE') {
+                        window.appState.publicAlunosData.delete(payload.old.id);
+                    } else {
+                        window.appState.publicAlunosData.set(payload.new.id, payload.new);
+                    }
+                    mergeAndRenderAlunos();
+                })
+                .subscribe();
+            subscriptions.push(publicAlunosChannel);
+            // Carga inicial
+            db.from('alunos_publico').select('*').order('nome').then(({ data }) => {
+                if(data) {
+                    window.appState.publicAlunosData = new Map(data.map(a => [a.id, a]));
+                    mergeAndRenderAlunos();
+                }
+            });
+
+            // --- TABELAS PRIVADAS (Somente Admin/User) ---
+            if (isAdmin || isUser) {
+                // --- TABELA: alunos_privado ---
+                const privateAlunosChannel = supabase.channel('alunos_privado_channel')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'alunos_privado' }, (payload) => {
+                        if (payload.eventType === 'DELETE') {
+                            window.appState.privateAlunosData.delete(payload.old.aluno_id);
+                        } else {
+                            window.appState.privateAlunosData.set(payload.new.aluno_id, payload.new);
+                        }
+                        mergeAndRenderAlunos();
+                    })
+                    .subscribe();
+                subscriptions.push(privateAlunosChannel);
+                // Carga inicial
+                db.from('alunos_privado').select('*').then(({ data }) => {
+                    if(data) {
+                        window.appState.privateAlunosData = new Map(data.map(a => [a.aluno_id, a]));
+                        mergeAndRenderAlunos();
+                    }
+                });
+
+                // --- TABELA: ocorrencias ---
+                const ocorrenciasChannel = supabase.channel('ocorrencias_channel')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'ocorrencias' }, () => {
+                        db.from('ocorrencias').select('*').then(({ data }) => {
+                            if (data) {
+                                const map = new Map();
+                                data.forEach(item => {
+                                    const list = map.get(item.aluno_id) || [];
+                                    list.push(item);
+                                    map.set(item.aluno_id, list);
+                                });
+                                window.appState.ocorrenciasData = map;
+                                window.dbCacheManager.writeData('ocorrencias', data);
+                                if (window.appState.currentTab === 'relatorios') window.renderRelatorios();
+                                if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
+                            }
+                        });
+                    })
+                    .subscribe();
+                subscriptions.push(ocorrenciasChannel);
+
+                // **** CORREÇÃO: CARGA INICIAL DE OCORRÊNCIAS ****
+                db.from('ocorrencias').select('*').then(({ data }) => {
+                    if (data) {
+                        console.log(`Carga inicial: ${data.length} ocorrências carregadas.`);
+                        const map = new Map();
+                        data.forEach(item => {
+                            const list = map.get(item.aluno_id) || [];
+                            list.push(item);
+                            map.set(item.aluno_id, list);
+                        });
+                        window.appState.ocorrenciasData = map;
+                        window.dbCacheManager.writeData('ocorrencias', data);
+                        if (window.appState.currentTab === 'relatorios') window.renderRelatorios();
+                        if (window.appState.currentTab === 'alunos') window.renderAlunos(); 
+                    }
+                });
+            }
             
             // --- TABELAS SÓ DE ADMIN ---
             if (isAdmin) {
-                 // --- TABELA: mensagens ---
                 const mensagensChannel = supabase.channel('mensagens_channel')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'mensagens' }, () => {
-                         // Recarrega todos
                         db.from('mensagens').select('*').order('created_at', { ascending: false }).then(({ data }) => {
                             if (data) {
                                 window.appState.mensagensData = data;
@@ -2530,7 +3526,7 @@ function populateTurmaSelect(elementId, selectedValue) {
         });
 
         // =======================================================
-        // --- FUNÇÕES DE MENSAGEM (IMPLEMENTAÇÃO) ---
+        // --- FUNÇÕES DE MENSAGEM (Corrigidas) ---
         // =======================================================
 
         window.openMensagemModal = (tipo, assuntoId, assuntoNome) => {
@@ -2549,12 +3545,10 @@ function populateTurmaSelect(elementId, selectedValue) {
             assinaturaInput.value = userSignature;
 
             if (window.appState.isAdmin) {
-                // Admin: Funciona como "Anotação Pessoal" (conforme relatório)
                 label.textContent = "Sua Anotação Pessoal (só você verá)";
                 assinaturaContainer.style.display = 'none'; 
                 assinaturaInput.required = false;
             } else {
-                // User/Professor: Envio para o Admin
                 label.textContent = "Sua Mensagem (para o Admin)";
                 assinaturaContainer.style.display = 'block';
                 assinaturaInput.required = true;
@@ -2573,13 +3567,13 @@ function populateTurmaSelect(elementId, selectedValue) {
 
             const dataPayload = {
                 tipo: form.mensagemTipo.value,
-                assuntoId: form.mensagemAssuntoId.value,
-                assuntoNome: form.mensagemAssuntoNome.value,
+                assunto_id: form.mensagemAssuntoId.value,
+                assunto_nome: form.mensagemAssuntoNome.value,
                 texto: form.mensagemTexto.value.trim(),
-                remetenteAssinatura: form.mensagemAssinatura.value || getAssinatura(),
-                remetenteRole: userRole,
-                remetenteEmail: userEmail,
-                dataEnvio: new Date().toISOString()
+                remetente_ass: form.mensagemAssinatura.value || getAssinatura(),
+                remetente_role: userRole,
+                remetente_email: userEmail,
+                data_envio: new Date().toISOString()
             };
 
             try {
@@ -2604,5 +3598,162 @@ function populateTurmaSelect(elementId, selectedValue) {
         console.log("Script principal finalizado (aguardando Auth state).");
 
     </script>
+
+<script>
+(function(){
+  // small utilities
+  function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+  // Patch dbCacheManager methods to retry on InvalidStateError
+  try {
+    if (window.dbCacheManager) {
+      ['readData','writeData'].forEach(function(name){
+        if (typeof window.dbCacheManager[name] === 'function') {
+          var orig = window.dbCacheManager[name].bind(window.dbCacheManager);
+          window.dbCacheManager[name] = async function(){
+            var args = Array.prototype.slice.call(arguments);
+            try {
+              return await orig.apply(null, args);
+            } catch(e) {
+              console.warn('[dbCacheManager] caught error in ' + name, e);
+              if (e && e.name === 'InvalidStateError') {
+                try { window.dbCacheManager.db && window.dbCacheManager.db.close(); } catch(_){}
+                await sleep(250);
+                try { await window.dbCacheManager.openDB && window.dbCacheManager.openDB(); } catch(_){}
+                try { return await orig.apply(null, args); } catch(e2){ console.warn('[dbCacheManager] retry failed', e2); throw e2; }
+              }
+              throw e;
+            }
+          };
+        }
+      });
+      console.info('[NATA] dbCacheManager patched for IndexedDB resilience');
+    }
+  } catch(e){ console.warn('dbCacheManager patch failed', e); }
+
+  // Ensure loadApp delays slightly to allow DB readiness by wrapping it
+  if (typeof window.loadApp === 'function') {
+    var _origLoadApp = window.loadApp.bind(window);
+    window.loadApp = async function(){
+      await sleep(220);
+      return _origLoadApp.apply(this, arguments);
+    };
+    console.info('[NATA] loadApp wrapped with startup delay');
+  }
+
+  // MutationObserver: detect status buttons (with inline onclick calling toggleStatusDevolucao) and add class/data attr
+  function normalizeStatusButtons(root){
+    try {
+      var nodes = (root || document).querySelectorAll ? (root.querySelectorAll('button[onclick*=\"toggleStatusDevolucao\"]') || []) : [];
+      nodes.forEach(function(btn){
+        if (!btn.classList.contains('status-toggle-btn')) {
+          var on = btn.getAttribute('onclick') || '';
+          var m = on.match(/toggleStatusDevolucao\(['\"]([^'\"]+)['\"]\)/);
+          if (m && m[1]) {
+            btn.dataset.toggleId = m[1];
+            btn.classList.add('status-toggle-btn');
+            if (!btn.getAttribute('aria-label')) btn.setAttribute('aria-label', 'Alternar status de devolução');
+          }
+        }
+      });
+    } catch(e){}
+  }
+
+  // Observe feed containers for new items
+  var feedContainers = [
+    document.getElementById('relatoriosContainer'),
+    document.getElementById('reportFeedBody'),
+    document.getElementById('contentContainer'),
+    document.getElementById('relatorios')
+  ].filter(Boolean);
+
+  feedContainers.forEach(function(container){
+    try {
+      normalizeStatusButtons(container);
+      var mo = new MutationObserver(function(muts){
+        muts.forEach(function(m){
+          if (m.addedNodes && m.addedNodes.length) {
+            m.addedNodes.forEach(function(n){ try{ normalizeStatusButtons(n); }catch(e){} });
+          }
+        });
+      });
+      mo.observe(container, { childList: true, subtree: true });
+    } catch(e){}
+  });
+
+  // Also run on DOMContentLoaded to pick up initial render
+  document.addEventListener('DOMContentLoaded', function(){ normalizeStatusButtons(document); });
+
+  // Provide robust toggleStatusDevolucao that updates button DOM directly and persists
+  if (typeof window.toggleStatusDevolucao !== 'function') {
+    window.toggleStatusDevolucao = async function(id){
+      try {
+        var all = [];
+        if (window.appState) {
+          if (Array.isArray(window.appState.ocorrencias)) all = window.appState.ocorrencias;
+          else if (window.appState.ocorrenciasData) {
+            try { all = [].concat(...Object.values(window.appState.ocorrenciasData)); } catch(e){}
+          }
+        }
+        var item = all && all.find && all.find(function(x){ return x && x.id === id; });
+        var btn = document.querySelector('.status-toggle-btn[data-toggle-id="'+id+'"]');
+        if (!item && !btn) {
+          console.warn('toggleStatusDevolucao: item/button not found', id);
+          return;
+        }
+        var novo = item ? ((item.status_devolucao === 'Devolvido') ? 'Pendente' : 'Devolvido') : null;
+        if (item) item.status_devolucao = novo;
+        if (btn && novo) {
+          if (novo === 'Devolvido') {
+            btn.style.background = getComputedStyle(document.documentElement).getPropertyValue('--color-atestado') || '#4CAF50';
+            btn.style.color = '#fff';
+            btn.innerHTML = '<span class=\"material-icons-outlined\" style=\"font-size:14px;\">check</span> Devolvido';
+          } else {
+            btn.style.background = getComputedStyle(document.documentElement).getPropertyValue('--color-danger') || '#d32f2f';
+            btn.style.color = '#fff';
+            btn.innerHTML = '<span class=\"material-icons-outlined\" style=\"font-size:14px;\">close</span> Pendente';
+          }
+        }
+        if (window.supabase && window.supabase.from && novo !== null) {
+          try {
+            const { error } = await window.supabase.from('ocorrencias').update({ status_devolucao: novo }).eq('id', id);
+            if (error) console.warn('Supabase update error', error);
+          } catch(e){ console.warn(e); }
+        } else if (window.dbCacheManager && window.dbCacheManager.writeData) {
+          try { await window.dbCacheManager.writeData('ocorrencias', all); } catch(e){ console.warn('cache write failed', e); }
+        } else {
+          try { localStorage.setItem('nata_tmp_ocorrencias', JSON.stringify(all)); } catch(e){}
+        }
+      } catch(e){ console.error('toggleStatusDevolucao erro', e); }
+    };
+    console.info('[NATA] toggleStatusDevolucao defined');
+  } else {
+    var _origToggle = window.toggleStatusDevolucao;
+    window.toggleStatusDevolucao = async function(id){
+      await _origToggle(id);
+      var btn = document.querySelector('.status-toggle-btn[data-toggle-id="'+id+'"]');
+      var foundItem = null;
+      try {
+        var all = window.appState && (window.appState.ocorrencias || []);
+        foundItem = all && all.find && all.find(function(x){ return x && x.id === id; });
+      } catch(e){}
+      if (btn && foundItem) {
+        var novo = foundItem.status_devolucao;
+        if (novo === 'Devolvido') {
+          btn.style.background = getComputedStyle(document.documentElement).getPropertyValue('--color-atestado') || '#4CAF50';
+          btn.style.color = '#fff';
+          btn.innerHTML = '<span class="material-icons-outlined" style="font-size:14px;">check</span> Devolvido';
+        } else {
+          btn.style.background = getComputedStyle(document.documentElement).getPropertyValue('--color-danger') || '#d32f2f';
+          btn.style.color = '#fff';
+          btn.innerHTML = '<span class="material-icons-outlined" style="font-size:14px;">close</span> Pendente';
+        }
+      }
+    };
+    console.info('[NATA] toggleStatusDevolucao wrapped for DOM sync');
+  }
+
+})();
+</script>
 </body>
 </html>
